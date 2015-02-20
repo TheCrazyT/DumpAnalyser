@@ -196,17 +196,15 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
        self.pos          = 0
 
        Globals.rSearcher.start()
-       toolMenu = QtWidgets.QWidget()
        hexGrid  = QtWidgets.QWidget()
        
-       toolMenu.setLayout(Globals.toolMenu)
        hexGrid.setLayout(Globals.hexGrid)
 
        mainLayout = QtWidgets.QHBoxLayout()
        mainWidget = QtWidgets.QWidget()
        mainWidget.setLayout(mainLayout)
        mainLayout.addWidget(hexGrid)
-       mainLayout.addWidget(toolMenu)
+       mainLayout.addWidget(Globals.toolMenu)
        
        self.setupUi(self)
        self.setCentralWidget(mainWidget)

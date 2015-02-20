@@ -96,7 +96,7 @@ class MarkableGrid(QtWidgets.QGridLayout):
             (item,color) = r
             if color != None:
                item.lbl.setStyleSheet("background-color:%s;" % color)
-      Globals.toolMenu.disableBlock()
+      Globals.toolMenu.disableRegion()
       print("clear colors end")
 
    def store_region(self):
@@ -268,7 +268,7 @@ class MarkableCell(QtWidgets.QGridLayout):
          Globals.toolMenu.enableRegionButtons() 
       else:
          Globals.toolMenu.disableRegionButtons() 
-      Globals.toolMenu.enableBlock() 
+      Globals.toolMenu.enableRegion() 
 
    def setText(self,str):
       if(self.tempSelect):
