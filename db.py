@@ -21,7 +21,7 @@ def close():
 def loadRegionReferences(regionId):
     global cur
     references = []
-    cur.execute("SELECT pos FROM regions_ref WHERE regionId=?",(regionId,))
+    cur.execute("SELECT pos FROM regions_ref WHERE regionId=? GROUP BY pos",(regionId,))
     rows = cur.fetchall()
     for row in rows:
         references.append(row[0])

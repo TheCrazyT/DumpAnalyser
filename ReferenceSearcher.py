@@ -75,7 +75,7 @@ class ReferenceSearcher(QtCore.QThread):
         
     def searchAll(self,regions):
         print("rSearcher.searchNext")
-        self.parent.statusBar().showMessage('Recalculating all references')
+        Globals.mainWindow.statusBar().showMessage('Recalculating all references')
         while self.pos<self.size-self.searchDataSize:
             self.file.seek(self.pos)
             buf           = self.file.read(self.file.cacheSize)

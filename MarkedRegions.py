@@ -67,6 +67,10 @@ class MarkedRegion():
             c = p.get_color(pos,char)
             if c != None:
                 return c
+        if pos == self.startPos:
+            return "#FF9999"
+        if pos == self.endPos:
+            return "#FF6666"
         return "red"
 
 class NullString():

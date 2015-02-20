@@ -47,10 +47,23 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
    def showReferencesWindow(self):
       Globals.referencesWindow.show()
 
+   def refreshReferences(self):
+      self.statusBar().showMessage('Recalculating all references')
+      Globals.hexGrid.allReferences = []
+      for r in Globals.hexGrid.regions.regionList:
+         r.references   = []
+         r.fullyScanned = False
+
    def search(self,pos):
       self.setPos(pos)
       Globals.hexGrid.temp_select(pos,len(self.searchWindow.txtSearch.text()))
       self.setFocus()
+
+   def doLoad(self,filename):
+         db.connect(filename)
+         self.rvaList = db.loadRvaList()
+         Globals.hexGrid.load()
+         db.close()
 
    def load(self):
       (filename,unknown) = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file','./Save','*.sav')
@@ -59,10 +72,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
             filename.index(".sav")
          except:
             filename = "%s.sav" % filename
-         db.connect(filename)
-         self.rvaList = db.loadRvaList()
-         Globals.hexGrid.load()
-         db.close()
+         self.doLoad(filename)
 
    def goto(self):
       pos = 0

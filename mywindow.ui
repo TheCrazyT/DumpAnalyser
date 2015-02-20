@@ -42,6 +42,7 @@
     <addaction name="action_Regions"/>
     <addaction name="action_Goto"/>
     <addaction name="actionAll_References"/>
+    <addaction name="actionRefresh_all_references"/>
    </widget>
    <widget class="QMenu" name="menuMark">
     <property name="title">
@@ -139,7 +140,12 @@
   </action>
   <action name="actionAll_References">
    <property name="text">
-    <string>All References</string>
+    <string>All references</string>
+   </property>
+  </action>
+  <action name="actionRefresh_all_references">
+   <property name="text">
+    <string>Refresh all &amp;references</string>
    </property>
   </action>
  </widget>
@@ -289,6 +295,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionRefresh_all_references</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>refreshReferences()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>showRVAWindow()</slot>
@@ -300,5 +322,6 @@
   <slot>showRegionsWindow()</slot>
   <slot>goto()</slot>
   <slot>showReferencesWindow()</slot>
+  <slot>refreshReferences()</slot>
  </slots>
 </ui>

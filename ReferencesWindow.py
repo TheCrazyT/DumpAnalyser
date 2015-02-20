@@ -11,7 +11,8 @@ class ReferencesWindow(QtWidgets.QMainWindow,RegionsUI):
         self.setupUi(self)
 
     def referenceSelected(self,widget):
-        self.parent.setPos(int(widget.text(),16))
+        if widget!=None:
+            Globals.mainWindow.setPos(int(widget.text(),16))
         
     def show(self):
         self.lstRefs.clear()
