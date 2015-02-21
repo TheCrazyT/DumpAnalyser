@@ -311,6 +311,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionOpen</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>open_dlg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>showRVAWindow()</slot>
@@ -323,5 +339,6 @@
   <slot>goto()</slot>
   <slot>showReferencesWindow()</slot>
   <slot>refreshReferences()</slot>
+  <slot>open_dlg()</slot>
  </slots>
 </ui>

@@ -157,23 +157,12 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       Globals.rSearcher.file = CachedReader(self.opened_file)
       Globals.rSearcher.size = self.size
 
-   def open_dlg(self,widget):
+   def open_dlg(self):
       if(self.opened_file != None):
          self.opened_file.close()
-      f = Gtk.FileChooserDialog("Open..",
-                                        None,
-                                        Gtk.FileChooserAction.OPEN,
-                                        (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                        Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-      f.set_default_response(Gtk.ResponseType.OK)
-      fcbtn = Gtk.FileChooserButton(f)
-      f.show_all()
-      response = f.run()
-      if response == Gtk.ResponseType.OK:
-         fname = f.get_filename()
-         self.open_file(fname)
-      f.hide_all()
-
+      (filename,unknown) = QtWidgets.QFileDialog.getOpenFileName(self, 'Open dump file','.','')
+      if filename!= "":
+         self.open_file(filename)
       
    def __init__(self, parent=None):
        QtWidgets.QMainWindow.__init__(self, parent)
