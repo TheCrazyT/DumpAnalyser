@@ -58,17 +58,20 @@ class MarkableGrid(QtWidgets.QGridLayout):
    def calc_view_regions(self,startPos,endPos):
       print("calc_view_regions %d,%d" % (startPos,endPos))
       regionsInView = self.regions.findWithin(startPos,endPos)
+      regionEntryList = []
       for r in regionsInView:
-         regionEntryList = []
          for y in range(0,self.height):
             for x in range(0,self.width):
                i = Globals.mainWindow.pos + y*self.width + x
                if i>=r.startPos and i<=r.endPos:
                   regionEntryList.append((self.text[y][x],r.get_color(i,Globals.mainWindow.buf[y*self.width+x])))
-               if Globals.mainWindow.action_References.isChecked():
-                  for j in range(0,4):
-                     if ((i-j) in self.allReferences):
-                        regionEntryList.append((self.text[y][x],"green"))
+      for y in range(0,self.height):
+         for x in range(0,self.width):
+            if Globals.mainWindow.action_References.isChecked():
+               i = Globals.mainWindow.pos + y*self.width + x
+               for j in range(0,4):
+                  if ((i-j) in self.allReferences):
+                     regionEntryList.append((self.text[y][x],"green"))
          self.viewRegions.append(regionEntryList)
    
    def clear_colors(self,all=False):
@@ -99,6 +102,52 @@ class MarkableGrid(QtWidgets.QGridLayout):
       Globals.toolMenu.disableRegion()
       print("clear colors end")
 
+
+   def resize_region(self,region,newStartPos,newEndPos):
+      if newStartpos!=region.startPos:
+         for ref in region.references:
+            Globals.hexGrid.allReferences.remove(ref)
+         region.fullyScanned = False
+      region.startPos  = newStartPos
+      region.newEndpos = newEndPos
+      region.references = []
+      
+   def merge_regions(self,regions,startPos,endPos):
+      startPoses = []
+      endPoses   = []
+      startPoses.append(startPos)
+      endPoses.append(endPos)
+      for r in regions:
+         startPoses.append(r.startPos)
+         endPoses.append(r.endPos)
+      startPos  = min(startPoses)
+      endPos    = max(endPoses)
+      newRegion = MarkedRegion(startPos,endPos-startPos)
+      for r in regions:
+         newRegion.properties.extend(r.properties)
+      for r in regions:
+         self.regions.remove(r)
+      self.regions.append(newRegion)
+      
+   def new_region(self,startPos,endPos):
+      print("%d,%d" % (startPos,endPos))
+      r            = MarkedRegion(startPos,endPos-startPos)
+      self.regions.add(r)
+
+
+   def detect_region_action(self,startPos,endPos):
+      (NEW_REGION,MERGE_REGIONS,RESIZE_REGION)=range(0,3)
+      regions = self.regions.findWithin(startPos,endPos)
+      if(len(regions)==0):
+         print("NEW_REGION")
+         return (NEW_REGION,None)
+      elif(len(regions)>1):
+         print("MERGE_REGION")
+         return (MERGE_REGIONS,regions)
+      elif(len(regions)==1):
+         print("RESIZE_REGION")
+         return (RESIZE_REGION,regions[0])
+      
    def store_region(self):
       startPos = self.width*self.height + 1
       endPos   = 0
@@ -110,9 +159,13 @@ class MarkableGrid(QtWidgets.QGridLayout):
             endPos   = i
       startPos    += Globals.mainWindow.pos
       endPos      += Globals.mainWindow.pos
-      print("%d,%d" % (startPos,endPos))
-      r            = MarkedRegion(startPos,endPos-startPos)
-      self.regions.add(r)
+      (action,result) = self.detect_region_action(startPos,endPos)
+      if   action == 0:
+         self.new_region(startPos,endPos)
+      elif action == 1:
+         self.merge_regions(result,startPos,endPos)
+      elif action == 2:
+         self.resize_region(result,startPos,endPos)
       self.calc_view_regions(Globals.mainWindow.pos,Globals.mainWindow.pos+self.width*self.height)
       self.clear_colors()
 

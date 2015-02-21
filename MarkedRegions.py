@@ -12,9 +12,15 @@ class MarkedRegions():
     def __init__(self):
         self.regionList = []
         
-    def add(self,reg):
-        self.regionList.append(reg)
+    def add(self,region):
+        self.regionList.append(region)
         
+    def append(self,region):
+        self.regionList.append(region)
+
+    def remove(self,region):
+        self.regionList.remove(region)
+
     def findWithin(self,startPos,endPos):
         print("findWithin %d,%d" % (startPos,endPos))
         result = []
@@ -58,7 +64,7 @@ class MarkedRegion():
 
     def save(self):
         db.saveRegion(self)
-        
+
     def add_nullstring(self,pos):
         self.properties.append(NullString(pos))
 
