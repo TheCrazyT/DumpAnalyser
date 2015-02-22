@@ -140,6 +140,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
             else:
                txt += chr(b)
          Globals.hexGrid.longedit[y].setText(txt)
+      Globals.hexGrid.update()
       print("readFile end")
 
    def scroll_event(self,value):
@@ -185,14 +186,11 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
        self.pos          = 0
 
        Globals.rSearcher.start()
-       hexGrid  = QtWidgets.QWidget()
-       
-       hexGrid.setLayout(Globals.hexGrid)
 
        mainLayout = QtWidgets.QHBoxLayout()
        mainWidget = QtWidgets.QWidget()
        mainWidget.setLayout(mainLayout)
-       mainLayout.addWidget(hexGrid)
+       mainLayout.addWidget(Globals.hexGrid)
        mainLayout.addWidget(Globals.toolMenu)
        
        self.setupUi(self)

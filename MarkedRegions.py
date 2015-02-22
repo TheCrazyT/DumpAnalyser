@@ -1,5 +1,6 @@
 import db
 import Globals
+from PyQt5 import QtCore, QtGui
 
 lastId = 0
 
@@ -74,10 +75,10 @@ class MarkedRegion():
             if c != None:
                 return c
         if pos == self.startPos:
-            return "#FF9999"
+            return QtGui.QColor(0xFF9999)
         if pos == self.endPos:
-            return "#FF6666"
-        return "red"
+            return QtGui.QColor(0xFF6666)
+        return QtGui.QColor(0xFF0000)
 
 class NullString():
     def __init__(self,startPos):
@@ -89,8 +90,8 @@ class NullString():
             if pos>=self.startPos:
                 if char == 0:
                     self.endPos = pos
-                return "yellow"
+                return QtGui.QColor(0x00FFFF)
         else:
             if (pos>=self.startPos) and (pos<=self.endPos):
-                return "yellow"
+                return QtGui.QColor(0x00FFFF)
         return None
