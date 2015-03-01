@@ -2,6 +2,7 @@
 import sys
 import os
 import db
+import string
 import Globals
 from struct            import *
 from PyQt5             import QtCore, QtGui, QtWidgets, uic
@@ -56,8 +57,8 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
 
    def search(self,pos):
       self.setPos(pos)
-      Globals.hexGrid.temp_select(pos,len(self.searchWindow.txtSearch.text()))
-      self.setFocus()
+      Globals.hexGrid.temp_select(pos,len(Globals.searchWindow.txtSearch.text()))
+      Globals.hexGrid.setFocus()
 
    def doLoad(self,filename):
          db.connect(filename)
@@ -124,6 +125,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       self.cached_file.seek(self.pos)
       self.buf = self.cached_file.read(Globals.hexGrid.width*Globals.hexGrid.height)
       Globals.hexGrid.clear_colors(True)
+      Globals.hexGrid.clear_selection()
       for y in range(0,Globals.hexGrid.height):
          Globals.hexGrid.offsets[y].setText("%08x" % (self.pos+y*Globals.hexGrid.width))
          txt = ""
@@ -132,10 +134,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
                break;
             b = self.buf[x+y*Globals.hexGrid.width]
             Globals.hexGrid.text[y][x].setText("%02x" % b)
-            if((not (b<=ord('z') and b>=ord('a')))and
-               (not (b<=ord('Z') and b>=ord('A')))and
-               (not (b<=ord('!') and b>=ord('/')))and
-               (not (b<=ord('0') and b>=ord('9')))):
+            if chr(b) not in string.printable:
                txt += "."
             else:
                txt += chr(b)

@@ -7,12 +7,10 @@ class MySelectionModel(QtCore.QItemSelectionModel):
       QtCore.QItemSelectionModel.__init__(self,model)
       self.model = model
    def select(self,i,flags):
-      #if(flags & QtCore.QItemSelectionModel.Select):
-      #   if(not self.hasSelection()):
-      #      self.minSel = idx
-      #if i is QtCore.QItemSelection:
       if type(i) is not QtCore.QModelIndex:
          if(flags & QtCore.QItemSelectionModel.Select):
+            Globals.toolMenu.enableRegion()
+            Globals.toolMenu.enableRegionButtons()
             minI = None
             maxI = None
             for k in i.indexes():
@@ -100,9 +98,6 @@ class MarkableGrid(QtWidgets.QTableView):
       font  = QtGui.QFont("Monospace", 8);
       font.setStyleHint(QtGui.QFont.TypeWriter);
       self.setFont(font);
-      #self.setSelectionMode (QtWidgets.QAbstractItemView.NoSelection)
-      #self.setHorizontalSpacing(2)
-      #self.setVerticalSpacing(2)
       self.text          = []
       self.longedit      = []
       self.offsets       = []
@@ -114,32 +109,19 @@ class MarkableGrid(QtWidgets.QTableView):
       lastEntry          = None
       for y in range(0,self.height):
          self.text.append([])
-         #entry = QtWidgets.QLineEdit()
          entry = SimpleData()
-         #font  = QtGui.QFont("Monospace", 8);
-         #font.setStyleHint(QtGui.QFont.TypeWriter);
-         #entry.setFont(font);
-         #entry.setMaxLength(8)
-         #entry.setFixedWidth(8*8)
          self.offsets.append(entry)
-         #entry.setReadOnly(True)
          entry.setText("00000000")
-         #self.addWidget(entry,y,0,1,1)
          for x in range(0,self.width):
             entry = MarkableCell(self,x,y)
             self.text[y].append(entry)
-            #self.addLayout(entry,y,x+1)
          entry = SimpleData()
-         #entry.setFixedWidth(width*8)
-         #entry.setFont(font);
-         #entry.setMaxLength(self.width)
          self.longedit.append(entry)
-         #entry.setReadOnly(False)
          lastEntry = entry
-         #self.addWidget(entry,y,width+2,1,width)
-      self.model = MyTableModel(self)
+      self.model          = MyTableModel(self)
+      self.selectionModel = MySelectionModel(self.model)
       self.setModel(self.model)
-      self.setSelectionModel(MySelectionModel(self.model))
+      self.setSelectionModel(self.selectionModel)
       OFFSET_WIDTH = 70
       TEXT_WIDTH   = 160
       COL_WIDTH    = 25
@@ -158,7 +140,6 @@ class MarkableGrid(QtWidgets.QTableView):
       i1 = QtCore.QModelIndex()
       i2 = QtCore.QModelIndex()
       self.dataChanged(i1,i2,[])
-      #self.layoutChanged()
       
    def load(self):
       self.regions.load()
@@ -250,14 +231,27 @@ class MarkableGrid(QtWidgets.QTableView):
          return (RESIZE_REGION,regions[0])
       
    def store_region(self):
-      startPos = self.width*self.height + 1
-      endPos   = 0
-      for c in self.colored:
-         i = c.y*self.width + c.x
-         if startPos >= i:
-            startPos = i
-         if endPos   <= i:
-            endPos   = i
+      x2 = 0
+      y2 = 0
+      x1 = self.width
+      y1 = self.height
+      for x in self.selectedIndexes():
+         if x.row()<y1:
+            y1 = x.row()
+            x1 = x.column()
+         elif (x.row()==y1) and (x.column()<x1):
+            x2 = x.column()
+         if x.row()>y2:
+            y2 = x.row()
+            x2 = x.column()
+         elif (x.row()==y2) and (x.column()>x2):
+            x2 = x.column()
+         
+      startPos = (x1-1) + y1*self.width
+      endPos   = (x2-1) + y2*self.width
+
+      print("store_region %d,%d - %d,%d %d-%d" % (x1,y1,x2,y2,startPos,endPos))
+      
       startPos    += Globals.mainWindow.pos
       endPos      += Globals.mainWindow.pos
       (action,result) = self.detect_region_action(startPos,endPos)
@@ -269,17 +263,28 @@ class MarkableGrid(QtWidgets.QTableView):
          self.resize_region(result,startPos,endPos)
       self.calc_view_regions(Globals.mainWindow.pos,Globals.mainWindow.pos+self.width*self.height)
       self.clear_colors()
+      self.selectionModel.clearSelection()
 
    def store_nullstring(self):
       print("store_nullstring")
-      startPos = self.width*self.height + 1
-      endPos   = 0
-      for c in self.colored:
-         i = c.y*self.width + c.x
-         if startPos >= i:
-            startPos = i
-         if endPos   <= i:
-            endPos   = i
+      x2 = 0
+      y2 = 0
+      x1 = self.width
+      y1 = self.height
+      for x in self.selectedIndexes():
+         if x.row()<y1:
+            y1 = x.row()
+            x1 = x.column()
+         elif (x.row()==y1) and (x.column()<x1):
+            x2 = x.column()
+         if x.row()>y2:
+            y2 = x.row()
+            x2 = x.column()
+         elif (x.row()==y2) and (x.column()>x2):
+            x2 = x.column()
+         
+      startPos = (x1-1) + y1*self.width
+      endPos   = (x2-1) + y2*self.width
       startPos    += Globals.mainWindow.pos
       endPos      += Globals.mainWindow.pos
       regions      = self.regions.findWithin(startPos,endPos)
@@ -289,47 +294,55 @@ class MarkableGrid(QtWidgets.QTableView):
       r            = regions[0]
       r.add_nullstring(startPos)
       self.clear_colors(True)
+      self.selectionModel.clearSelection()
  
    def store_string(self):
-      startPos = self.width*self.height + 1
-      endPos   = 0
-      for c in self.colored:
-         i = c.y*self.width + c.x
-         if startPos >= i:
-            startPos = i
-         if endPos   <= i:
-            endPos   = i
+      x2 = 0
+      y2 = 0
+      x1 = self.width
+      y1 = self.height
+      for x in self.selectedIndexes():
+         if x.row()<y1:
+            y1 = x.row()
+            x1 = x.column()
+         elif (x.row()==y1) and (x.column()<x1):
+            x2 = x.column()
+         if x.row()>y2:
+            y2 = x.row()
+            x2 = x.column()
+         elif (x.row()==y2) and (x.column()>x2):
+            x2 = x.column()
+         
+      startPos = (x1-1) + y1*self.width
+      endPos   = (x2-1) + y2*self.width
       startPos    += Globals.mainWindow.pos
       endPos      += Globals.mainWindow.pos
       regions = self.regions.findWithin(startPos,endPos)
+      self.selectionModel.clearSelection()
       if len(regions) != 1:
          return
 
+   def clear_selection(self):
+      self.selectionModel.clearSelection()
+      
    def temp_select(self,startPos,length):
-      rStartPos = startPos - Globals.mainWindow.pos
-      #oldy      = None
-      #oldx      = None
-      for i in range(rStartPos,rStartPos + length):
-         px = i % self.width
-         py = int((i-px) / self.width)
-         #if oldy == None:
-         #   oldy = py
-         #if oldx == None:
-         #   oldx = px
-         try:
-            self.text[py][px].temp_select()
-         except(IndexError):
-            print("INDEX ERROR for py: %s and px: %s" % (py,px))
-            raise(BaseException())
-         #if (oldy != py) or (i == rStartPos + length - 1):
-         #   if px == 0:
-         #      llen = oldx-self.width
-         #   else:
-         #      llen = px
-         #   self.longedit[oldy].setSelection(oldx,llen)
-         #   print("longedit selection(%d) %d %d" % (py,oldx,llen))
-         #else:
-         #   oldx = px
+      rStartPos     = startPos - Globals.mainWindow.pos
+      rEndPos       = rStartPos + length
+      selectedItems = QtCore.QItemSelection()
+
+      x1 = rStartPos % self.width
+      y1 = int((rStartPos - x1) / self.width)
+      x1 += 1
+
+      x2 = rEndPos % self.width
+      y2 = int((rEndPos - x2) / self.width)
+
+      print("temp_select %d,%d - %d,%d" % (x1,y1,x2,y2))
+      topLeft       = self.model.index(y1,x1,QtCore.QModelIndex())
+      bottomRight   = self.model.index(y2,x2,QtCore.QModelIndex())
+      selectedItems.select(topLeft,bottomRight)
+      self.selectionModel.clearSelection()
+      self.selectionModel.select(selectedItems, QtCore.QItemSelectionModel.Select)
       
 class MarkableCell(QtWidgets.QWidget):
    def __init__(self,parent,x,y):
@@ -341,17 +354,11 @@ class MarkableCell(QtWidgets.QWidget):
       font        = QtGui.QFont("Monospace", 8);
       font.setStyleHint(QtGui.QFont.TypeWriter);
       self.parent              = parent
-      self.tempSelect          = False
       self.text                = None
 
    def setColor(self,color):
       self.color = color
 
-   def temp_select(self):
-      self.tempSelect = True
-      #self.lbl.font().setUnderline(True)
-      #self.lbl.setStyleSheet("color:red;")
-   
    def mousePressEvent(self,event):
       print("mousePressEvent")
       if (event.button()== QtCore.Qt.RightButton):
@@ -373,10 +380,6 @@ class MarkableCell(QtWidgets.QWidget):
           Globals.hexGrid.clear_colors()
 
    def setText(self,str):
-      #if(self.tempSelect):
-         #self.tempSelect = False
-         #self.lbl.font().setUnderline(False)
-         #self.lbl.setStyleSheet("background-color:white;")
       self.text = str
 
    def getText(self):
