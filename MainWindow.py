@@ -43,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       Globals.rvaWindow.show()
 
    def showSearchWindow(self):
-      Globals.searchWindow.show(self.opened_file,self.size,self.search)
+      Globals.searchWindow.show(self.opened_file,self.fileSize,self.search)
 
    def showReferencesWindow(self):
       Globals.referencesWindow.show()
@@ -104,58 +104,78 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
          db.close()
       
    def searchNext(self):
-      pos      = self.searchWindow.searchNext()
+      pos      = Globals.searchWindow.searchNext()
       if pos == -1:
          return
       realPos  = pos
       pos     -= pos % Globals.hexGrid.width
       self.setPos(pos)
-      Globals.hexGrid.temp_select(realPos,len(self.searchWindow.txtSearch.text()))
-      self.setFocus()
+      Globals.hexGrid.temp_select(realPos,len(Globals.searchWindow.txtSearch.text()))
+      Globals.hexGrid.setFocus()
 
    def setPos(self,pos):
       pos      -= pos % Globals.hexGrid.width
       self.pos  = pos
-      self.scroll.setValue(self.pos/Globals.hexGrid.width)
-      self.readFile()
+      #self.scroll.setValue(self.pos/Globals.hexGrid.width)
+      #self.readFile()
+      y   = int(self.pos/Globals.hexGrid.width)
+      idx = Globals.hexGrid.model.index(y,0,QtCore.QModelIndex())
+      Globals.hexGrid.scrollTo(idx)
 
+   def readTxt(self,pos,length):
+      self.cached_file.seek(pos)
+      s  = self.cached_file.read(length)
+      txt = ""
+      for b in s:
+         if (9 == b)or(chr(b) not in string.printable):
+            txt += "."
+         else:
+            txt += chr(b)
+
+      return txt
+
+   def readHex(self,pos):
+      self.cached_file.seek(pos)
+      b = self.cached_file.read(1)[0]
+      return "%02x" % b
+      
    def readFile(self):
       print("readFile start")
 
-      self.cached_file.seek(self.pos)
-      self.buf = self.cached_file.read(Globals.hexGrid.width*Globals.hexGrid.height)
-      Globals.hexGrid.clear_colors(True)
-      Globals.hexGrid.clear_selection()
-      for y in range(0,Globals.hexGrid.height):
-         Globals.hexGrid.offsets[y].setText("%08x" % (self.pos+y*Globals.hexGrid.width))
-         txt = ""
-         for x in range(0,Globals.hexGrid.width):
-            if x+y*Globals.hexGrid.width>=len(self.buf):
-               break;
-            b = self.buf[x+y*Globals.hexGrid.width]
-            Globals.hexGrid.text[y][x].setText("%02x" % b)
-            if chr(b) not in string.printable:
-               txt += "."
-            else:
-               txt += chr(b)
-         Globals.hexGrid.longedit[y].setText(txt)
+      #self.cached_file.seek(self.pos)
+      #self.buf = self.cached_file.read(Globals.hexGrid.width*Globals.hexGrid.height)
+      #Globals.hexGrid.clear_colors(True)
+      #Globals.hexGrid.clear_selection()
+      #for y in range(0,Globals.hexGrid.height):
+      #   Globals.hexGrid.offsets[y].setText("%08x" % (self.pos+y*Globals.hexGrid.width))
+      #   txt = ""
+      #   for x in range(0,Globals.hexGrid.width):
+      #      if x+y*Globals.hexGrid.width>=len(self.buf):
+      #         break;
+      #      b = self.buf[x+y*Globals.hexGrid.width]
+      #      Globals.hexGrid.text[y][x].setText("%02x" % b)
+      #      if chr(b) not in string.printable:
+      #         txt += "."
+      #      else:
+      #         txt += chr(b)
+      #   Globals.hexGrid.longedit[y].setText(txt)
       Globals.hexGrid.update()
       print("readFile end")
 
-   def scroll_event(self,value):
-      self.pos = value*Globals.hexGrid.width
-      self.readFile()
+   #def scroll_event(self,value):
+   #   self.pos = value*Globals.hexGrid.width
+   #   self.readFile()
 
    def open_file(self,fname):
       self.opened_file = open(fname,"rb")
       self.opened_file.locker = None
       self.cached_file = CachedReader(self.opened_file)
       self.pos         = 0
-      self.size        = os.path.getsize(fname)
-      self.scroll.setMaximum(self.size/Globals.hexGrid.width)
+      self.fileSize    = os.path.getsize(fname)
+      #self.scroll.setMaximum(self.fileSize/Globals.hexGrid.width)
       self.readFile()
       Globals.rSearcher.file = CachedReader(self.opened_file)
-      Globals.rSearcher.size = self.size
+      Globals.rSearcher.size = self.fileSize
 
    def open_dlg(self):
       if(self.opened_file != None):
@@ -168,6 +188,13 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
        QtWidgets.QMainWindow.__init__(self, parent)
        Globals.mainWindow   = self
        
+       self.rvaList      = []
+       self.cachePos     = None
+       self.cacheSize    = None
+       self.cache        = None
+       self.pos          = 0
+       self.fileSize     = 0
+
        Globals.rSearcher    = ReferenceSearcher(self)
        Globals.hexGrid      = MarkableGrid(self,32,32)
        Globals.toolMenu     = ToolMenu(self)
@@ -178,12 +205,6 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
        Globals.referencesWindow = ReferencesWindow(self)
        Globals.propertiesWindow = PropertiesWindow(self)
        
-       self.rvaList      = []
-       self.cachePos     = None
-       self.cacheSize    = None
-       self.cache        = None
-       self.pos          = 0
-
        Globals.rSearcher.start()
 
        mainLayout = QtWidgets.QHBoxLayout()
@@ -196,9 +217,9 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
        self.setCentralWidget(mainWidget)
        
        self.opened_file      = None
-       self.scroll           = QtWidgets.QScrollBar(2)
-       self.scroll.valueChanged.connect(self.scroll_event)
-       mainLayout.addWidget(self.scroll)
+       #self.scroll           = QtWidgets.QScrollBar(2)
+       #self.scroll.valueChanged.connect(self.scroll_event)
+       #mainLayout.addWidget(self.scroll)
        self.statusBar().showMessage('Ready')
 
 # If the program is run directly or passed as an argument to the python
