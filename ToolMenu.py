@@ -18,10 +18,12 @@ class ToolMenu(QtWidgets.QWidget,ToolMenuUI):
    def enableRegionButtons(self):
       self.btnNullString.setEnabled(True)
       self.btnString.setEnabled(True)
+      self.btnErase.setEnabled(True)
       
    def disableRegionButtons(self):
       self.btnNullString.setEnabled(False)
       self.btnString.setEnabled(False)
+      self.btnErase.setEnabled(False)
 
    def btnRegion_clicked(self,event):
       Globals.hexGrid.store_region()
@@ -31,3 +33,6 @@ class ToolMenu(QtWidgets.QWidget,ToolMenuUI):
 
    def btnString_clicked(self,event):
       Globals.hexGrid.store_string()
+
+   def btnErase_clicked(self,event):
+      Globals.hexGrid.erase()

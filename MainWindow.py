@@ -127,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       s  = self.cached_file.read(length)
       txt = ""
       for b in s:
-         if (9 == b)or(chr(b) not in string.printable):
+         if (10 == b)or(13 == b)or(9 == b)or(chr(b) not in string.printable):
             txt += "."
          else:
             txt += chr(b)

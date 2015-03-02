@@ -119,6 +119,18 @@ class MarkableGrid(QtWidgets.QTableView):
       self.height        = height
       self.text          = None
 
+   def mousePressEvent(self,event):
+      print("mousePressEvent")
+      print(event)
+      super().mousePressEvent(event)
+      rect   = self.viewport().rect()
+      index  = self.currentIndex()
+      topRow = Globals.hexGrid.indexAt(rect.topLeft()).row()
+      x      = index.column()-1
+      y      = index.row()-topRow
+      if self.text[x][y]!=None:
+         self.text[x][y].mousePressEvent(event)
+
    def updateView(self):
       rect             = self.viewport().rect()
       topRow           = self.indexAt(rect.topLeft()).row()
@@ -152,20 +164,21 @@ class MarkableGrid(QtWidgets.QTableView):
       self.setModel(self.model)
       self.setSelectionModel(self.selectionModel)
 
-      CHAR_WIDTH   = 11
-      OFFSET_WIDTH = CHAR_WIDTH * 8
-      TEXT_WIDTH   = CHAR_WIDTH * self.width
-      COL_WIDTH    = CHAR_WIDTH * 2
+      MARGIN          = 8
+      CHAR_WIDTH      = 7
+      OFFSET_WIDTH    = MARGIN + CHAR_WIDTH * 8
+      TEXT_WIDTH      = MARGIN + CHAR_WIDTH * self.width
+      COL_WIDTH       = MARGIN + CHAR_WIDTH * 2
+      SCROLLBAR_WIDTH = 8
       self.setColumnWidth(0,OFFSET_WIDTH)
       self.setColumnWidth(self.width+1,TEXT_WIDTH)
       for i in range(1,self.width+1):
          self.setColumnWidth(i,COL_WIDTH)
       for i in range(0,self.height):
          self.setRowHeight(i,24)
-      self.setMinimumWidth(OFFSET_WIDTH+TEXT_WIDTH+(self.width)*COL_WIDTH)
+      self.setMinimumWidth(SCROLLBAR_WIDTH+OFFSET_WIDTH+TEXT_WIDTH+(self.width)*COL_WIDTH)
       self.setMinimumHeight((2+self.height)*24)
       self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-      #self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
       
    def load(self):
       self.regions.load()
@@ -178,7 +191,7 @@ class MarkableGrid(QtWidgets.QTableView):
       self.viewRegions = []
 
    def calc_view_regions(self,startPos,endPos):
-      print("calc_view_regions %d,%d" % (startPos,endPos))
+      print("calc_view_regions %08x,%08x" % (startPos,endPos))
       regionsInView = self.regions.findWithin(startPos,endPos)
       regionEntryList = []
       for r in regionsInView:
@@ -197,16 +210,17 @@ class MarkableGrid(QtWidgets.QTableView):
          self.viewRegions.append(regionEntryList)
    
    def resize_region(self,region,newStartPos,newEndPos):
+      print("resize_region %08x %08x" % (newStartPos,newEndPos) )
       if newStartPos!=region.startPos:
          for ref in region.references:
-            if ref in Globals.hexGrid.allReferences:
-               Globals.hexGrid.allReferences.remove(ref)
+            self.allReferences.remove(ref)
          region.fullyScanned = False
-      region.startPos  = newStartPos
-      region.newEndpos = newEndPos
+      region.startPos = newStartPos
+      region.endPos   = newEndPos
       region.references = []
       
    def merge_regions(self,regions,startPos,endPos):
+      print("merge_regions")
       startPoses = []
       endPoses   = []
       startPoses.append(startPos)
@@ -241,31 +255,32 @@ class MarkableGrid(QtWidgets.QTableView):
       elif(len(regions)==1):
          print("RESIZE_REGION")
          return (RESIZE_REGION,regions[0])
-      
-   def store_region(self):
-      x2 = 0
-      y2 = 0
-      x1 = self.width
-      y1 = self.height
+
+   def get_start_end_sel(self):
+      x2 = None
+      y2 = None
+      x1 = None
+      y1 = None
       for x in self.selectedIndexes():
-         if x.row()<y1:
+         if (x1==None) or (y1==None) or (x.row()<y1):
             y1 = x.row()
             x1 = x.column()
-         elif (x.row()==y1) and (x.column()<x1):
+         elif (x2==None) or (x.row()==y1) and (x.column()<x1):
             x2 = x.column()
-         if x.row()>y2:
+         if (x2==None) or (y2==None) or (x.row()>y2):
             y2 = x.row()
             x2 = x.column()
-         elif (x.row()==y2) and (x.column()>x2):
+         elif (x2==None) or (x.row()==y2) and (x.column()>x2):
             x2 = x.column()
-         
+      print("get_start_end_sel %d %d - %d %d" % (x1,y1,x2,y2))
       startPos = (x1-1) + y1*self.width
       endPos   = (x2-1) + y2*self.width
+      return (startPos,endPos)
+   
+   def store_region(self):
 
-      print("store_region %d,%d - %d,%d %d-%d" % (x1,y1,x2,y2,startPos,endPos))
-      
-      #startPos    += Globals.mainWindow.pos
-      #endPos      += Globals.mainWindow.pos
+      (startPos,endPos) = self.get_start_end_sel()
+      print("store_region %d-%d" % (startPos,endPos))
       (action,result) = self.detect_region_action(startPos,endPos)
       if   action == 0:
          self.new_region(startPos,endPos)
@@ -279,59 +294,49 @@ class MarkableGrid(QtWidgets.QTableView):
 
    def store_nullstring(self):
       print("store_nullstring")
-      x2 = 0
-      y2 = 0
-      x1 = self.width
-      y1 = self.height
-      for x in self.selectedIndexes():
-         if x.row()<y1:
-            y1 = x.row()
-            x1 = x.column()
-         elif (x.row()==y1) and (x.column()<x1):
-            x2 = x.column()
-         if x.row()>y2:
-            y2 = x.row()
-            x2 = x.column()
-         elif (x.row()==y2) and (x.column()>x2):
-            x2 = x.column()
-         
-      startPos = (x1-1) + y1*self.width
-      endPos   = (x2-1) + y2*self.width
-      startPos    += Globals.mainWindow.pos
-      endPos      += Globals.mainWindow.pos
+      (startPos,endPos) = self.get_start_end_sel()
       regions      = self.regions.findWithin(startPos,endPos)
       print("len(regions): %d" % len(regions))
       if len(regions) != 1:
+         print("%d region found" % len(regions))
          return
       r            = regions[0]
       r.add_nullstring(startPos)
       self.selectionModel.clearSelection()
  
    def store_string(self):
-      x2 = 0
-      y2 = 0
-      x1 = self.width
-      y1 = self.height
-      for x in self.selectedIndexes():
-         if x.row()<y1:
-            y1 = x.row()
-            x1 = x.column()
-         elif (x.row()==y1) and (x.column()<x1):
-            x2 = x.column()
-         if x.row()>y2:
-            y2 = x.row()
-            x2 = x.column()
-         elif (x.row()==y2) and (x.column()>x2):
-            x2 = x.column()
-         
-      startPos = (x1-1) + y1*self.width
-      endPos   = (x2-1) + y2*self.width
-      startPos    += Globals.mainWindow.pos
-      endPos      += Globals.mainWindow.pos
+      (startPos,endPos) = self.get_start_end_sel()
       regions = self.regions.findWithin(startPos,endPos)
       self.selectionModel.clearSelection()
       if len(regions) != 1:
          return
+
+   def delete_region(self,region):
+      print("delete_region")
+      for ref in region.references:
+            self.allReferences.remove(ref)
+      self.regions.remove(region)
+      
+   def erase(self):
+      (startPos,endPos) = self.get_start_end_sel()
+      print("erase %08x %08x" % (startPos,endPos))
+      regions = self.regions.findWithin(startPos,endPos)
+      self.selectionModel.clearSelection()
+      if len(regions) != 1:
+         print("%d region found" % len(regions))
+         return
+      region = regions[0]
+      print("region %08x %08x" % (region.startPos,region.endPos))
+      if (startPos <= region.startPos)and(endPos >= region.endPos):
+         self.delete_region(region)
+      else:
+         if (startPos <= region.startPos)and(endPos < region.endPos):
+            self.resize_region(region,endPos+1,region.endPos)
+         elif (startPos > region.startPos)and(endPos >= region.endPos):
+            self.resize_region(region,region.startPos,startPos-1)
+      self.viewRegions = []
+      self.updateView()
+      self.selectionModel.clearSelection()
 
    def clear_selection(self):
       self.selectionModel.clearSelection()

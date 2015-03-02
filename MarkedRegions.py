@@ -23,7 +23,7 @@ class MarkedRegions():
         self.regionList.remove(region)
 
     def findWithin(self,startPos,endPos):
-        print("findWithin %d,%d" % (startPos,endPos))
+        print("findWithin %08x,%08x" % (startPos,endPos))
         result = []
         for r in self.regionList:
             if endPos       >= r.startPos and endPos   <= r.endPos:

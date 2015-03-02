@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>128</width>
-    <height>99</height>
+    <height>134</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,6 +41,16 @@
      </property>
      <property name="text">
       <string>Size limited string</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="btnErase">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="text">
+      <string>Erase</string>
      </property>
     </widget>
    </item>
@@ -109,10 +119,27 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>btnErase</sender>
+   <signal>clicked()</signal>
+   <receiver>wToolMenu</receiver>
+   <slot>btnErase_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>107</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>63</x>
+     <y>66</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>btnRegion_clicked()</slot>
   <slot>btnNullString_clicked()</slot>
   <slot>btnString_clicked()</slot>
+  <slot>btnErase_clicked()</slot>
  </slots>
 </ui>
