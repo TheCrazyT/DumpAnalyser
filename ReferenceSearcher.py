@@ -41,13 +41,14 @@ class ReferenceSearcher(QtCore.QThread):
             Globals.hexGrid.allReferences = allRefs
         print("stopped")
 
-    def calculatePointerPosRVA(self,relPos):
-        print("calculatePointerPosRVA(%d)" % relPos)
+    def calculatePointerPosRVA(self,pos):
+        print("calculatePointerPosRVA(%08x)" % pos)
         i    = []
-        i.append(Globals.mainWindow.buf[relPos+3])
-        i.append(Globals.mainWindow.buf[relPos+2])
-        i.append(Globals.mainWindow.buf[relPos+1])
-        i.append(Globals.mainWindow.buf[relPos])
+        buf = Globals.mainWindow.readPointer(pos)
+        i.append(buf[3])
+        i.append(buf[2])
+        i.append(buf[1])
+        i.append(buf[0])
         p    = 0
         for j in i:
             p<<= 8

@@ -116,10 +116,8 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
    def setPos(self,pos):
       pos      -= pos % Globals.hexGrid.width
       self.pos  = pos
-      #self.scroll.setValue(self.pos/Globals.hexGrid.width)
-      #self.readFile()
-      y   = int(self.pos/Globals.hexGrid.width)
-      idx = Globals.hexGrid.model.index(y,0,QtCore.QModelIndex())
+      y         = int(self.pos/Globals.hexGrid.width)
+      idx       = Globals.hexGrid.model.index(y,0,QtCore.QModelIndex())
       Globals.hexGrid.scrollTo(idx)
 
    def readTxt(self,pos,length):
@@ -134,37 +132,15 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
 
       return txt
 
+   def readPointer(self,pos):
+      self.cached_file.seek(pos)
+      b = self.cached_file.read(4)
+      return b
+
    def readHex(self,pos):
       self.cached_file.seek(pos)
       b = self.cached_file.read(1)[0]
       return "%02x" % b
-      
-   def readFile(self):
-      print("readFile start")
-
-      #self.cached_file.seek(self.pos)
-      #self.buf = self.cached_file.read(Globals.hexGrid.width*Globals.hexGrid.height)
-      #Globals.hexGrid.clear_colors(True)
-      #Globals.hexGrid.clear_selection()
-      #for y in range(0,Globals.hexGrid.height):
-      #   Globals.hexGrid.offsets[y].setText("%08x" % (self.pos+y*Globals.hexGrid.width))
-      #   txt = ""
-      #   for x in range(0,Globals.hexGrid.width):
-      #      if x+y*Globals.hexGrid.width>=len(self.buf):
-      #         break;
-      #      b = self.buf[x+y*Globals.hexGrid.width]
-      #      Globals.hexGrid.text[y][x].setText("%02x" % b)
-      #      if chr(b) not in string.printable:
-      #         txt += "."
-      #      else:
-      #         txt += chr(b)
-      #   Globals.hexGrid.longedit[y].setText(txt)
-      Globals.hexGrid.update()
-      print("readFile end")
-
-   #def scroll_event(self,value):
-   #   self.pos = value*Globals.hexGrid.width
-   #   self.readFile()
 
    def open_file(self,fname):
       self.opened_file = open(fname,"rb")
@@ -172,8 +148,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       self.cached_file = CachedReader(self.opened_file)
       self.pos         = 0
       self.fileSize    = os.path.getsize(fname)
-      #self.scroll.setMaximum(self.fileSize/Globals.hexGrid.width)
-      self.readFile()
+      Globals.hexGrid.update()
       Globals.rSearcher.file = CachedReader(self.opened_file)
       Globals.rSearcher.size = self.fileSize
 
@@ -217,9 +192,6 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
        self.setCentralWidget(mainWidget)
        
        self.opened_file      = None
-       #self.scroll           = QtWidgets.QScrollBar(2)
-       #self.scroll.valueChanged.connect(self.scroll_event)
-       #mainLayout.addWidget(self.scroll)
        self.statusBar().showMessage('Ready')
 
 # If the program is run directly or passed as an argument to the python

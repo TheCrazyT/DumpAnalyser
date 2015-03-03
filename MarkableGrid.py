@@ -379,7 +379,7 @@ class MarkableCell(QtWidgets.QWidget):
           showRefs  = False
           for i in range(0,4):
              if startPos - i in Globals.hexGrid.allReferences:
-                reference = Globals.rSearcher.calculatePointerPosRVA(startPos-i-Globals.mainWindow.pos)
+                reference = Globals.rSearcher.calculatePointerPosRVA(startPos-i)
                 showRefs  = True
           r = Globals.hexGrid.regions.findWithin(startPos,startPos)
           Globals.propertiesWindow.showRefs = showRefs
