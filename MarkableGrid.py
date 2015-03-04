@@ -7,46 +7,46 @@ class MySelectionModel(QtCore.QItemSelectionModel):
       QtCore.QItemSelectionModel.__init__(self,model)
       self.model = model
    def select(self,i,flags):
+      width  = Globals.hexGrid.width
+      height = Globals.hexGrid.height
       if type(i) is not QtCore.QModelIndex:
          if(flags & QtCore.QItemSelectionModel.Select):
             Globals.toolMenu.enableRegion()
             Globals.toolMenu.enableRegionButtons()
-            minI = None
-            maxI = None
+            maxIidx = None
+            minIidx = None
             for k in i.indexes():
-               if minI == None:
-                  minI = k
-               if maxI == None:
-                  maxI = k
-               width  = Globals.hexGrid.width
-               height = Globals.hexGrid.height
-               q = maxI.row()*width+maxI.column()
-               v = minI.row()*width+minI.column()
-               w = k.row()*width+k.column()
-               if w<v:
-                  minI = k
-               if w>q:
-                  maxI = k
-            v = minI.row()*width+minI.column()
-            q = maxI.row()*width+maxI.column()
-            c1   = v % width
-            r1   = int((v-c1)/width)
-            c2   = q % width
-            r2  = int((q-c2)/width)
-            if r1+2<=r2:
-               idx1 = self.model.createIndex(r1+1,0)
-               idx2 = self.model.createIndex(r2-1,width)
-               sr  = QtCore.QItemSelectionRange(idx1,idx2)
+               if minIidx == None:
+                  minIidx = k.row()*width+k.column()
+               if maxIidx == None:
+                  maxIidx = k.row()*width+k.column()
+               idx = k.row()*width+k.column()
+               if idx<minIidx:
+                  minIidx = k.row()*width+k.column()
+               if idx>maxIidx:
+                  maxIidx = k.row()*width+k.column()
+            i.clear()
+            col1 = minIidx % width
+            col2 = maxIidx % width
+            row1 = int((minIidx-col1)/width)
+            row2 = int((maxIidx-col2)/width)
+            cIdx = self.currentIndex()
+            if (cIdx.column()==col1):
+               col1 = col2
+               col2 = cIdx.column()
+            if row1+2<=row2:
+               idx1 = self.model.createIndex(row1+1,0)
+               idx2 = self.model.createIndex(row2-1,width)
+               sr   = QtCore.QItemSelectionRange(idx1,idx2)
                i.append(sr)
-            if r1<r2:
-               idx1 = self.model.createIndex(r1,c1)
-               idx2 = self.model.createIndex(r1,width)
-               sr = QtCore.QItemSelectionRange(idx1,idx2)
+            if row1<row2:
+               idx1 = self.model.createIndex(row1,col1)
+               idx2 = self.model.createIndex(row1,width)
+               sr   = QtCore.QItemSelectionRange(idx1,idx2)
                i.append(sr)
-            if r1<r2:
-               idx1 = self.model.createIndex(r2,0)
-               idx2 = self.model.createIndex(r2,c2)
-               sr = QtCore.QItemSelectionRange(idx1,idx2)
+               idx1 = self.model.createIndex(row2,0)
+               idx2 = self.model.createIndex(row2,col2)
+               sr   = QtCore.QItemSelectionRange(idx1,idx2)
                i.append(sr)
       super().select(i,flags)
 
@@ -128,8 +128,10 @@ class MarkableGrid(QtWidgets.QTableView):
       topRow = Globals.hexGrid.indexAt(rect.topLeft()).row()
       x      = index.column()-1
       y      = index.row()-topRow
-      if self.text[x][y]!=None:
-         self.text[x][y].mousePressEvent(event)
+      if self.text!=None:
+         if self.text[x]!=None:
+            if self.text[x][y]!=None:
+               self.text[x][y].mousePressEvent(event)
 
    def updateView(self):
       rect             = self.viewport().rect()
