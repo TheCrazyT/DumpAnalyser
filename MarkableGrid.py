@@ -70,7 +70,8 @@ class MySelectionModel(QtCore.QItemSelectionModel):
                if cIdx.column()!=col2:
                   col1 = col2
                   col2 = cIdx.column()
-            i.clear()
+            if row1!=row2:
+               i.clear()
             dbg("cIdx.column(): %d,minIidx: %d, maxIidx: %d, row1: %d, row2: %d, col1: %d, col2: %d" % (cIdx.column(),minIidx,maxIidx,row1,row2,col1,col2))
             if row1+2<=row2:
                idx1 = self.model.createIndex(row1+1,0)
@@ -321,7 +322,6 @@ class MarkableGrid(QtWidgets.QTableView):
       return (startPos,endPos)
    
    def store_region(self):
-
       (startPos,endPos) = self.get_start_end_sel()
       dbg("store_region %d-%d" % (startPos,endPos))
       (action,result) = self.detect_region_action(startPos,endPos)
@@ -385,15 +385,20 @@ class MarkableGrid(QtWidgets.QTableView):
       self.selectionModel.clearSelection()
       
    def temp_select(self,startPos,length):
-      x1  = startPos % self.width
-      y1  = int((startPos - x1) / self.width)
-      x1 += 1
+      length -= 1
+
+      x1      = startPos % self.width
+      y1      = int((startPos - x1) / self.width)
+      x1     += 1
 
       endPos = startPos + length
+      if(endPos % (self.width + 2) == 0):
+         endPos += 1
       x2     = endPos % self.width
       y2     = int((endPos - x2) / self.width)
+      x2    += 1
 
-      dbg("temp_select %d,%d - %d,%d" % (x1,y1,x2,y2))
+      dbg("temp_select %d,%d - %d,%d (%d to %d)" % (x1,y1,x2,y2,startPos,endPos))
       first         = self.model.index(y1,x1,QtCore.QModelIndex())
       last          = self.model.index(y2,x2,QtCore.QModelIndex())
       selectedItems = CustomSelection(first,last)

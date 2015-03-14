@@ -18,6 +18,10 @@ class MainWindowMock:
         self.size        = 12000
         self.fileSize    = 12000
         self.rvaList     = []
+    def readHex(self,pos):
+        return "00"
+    def readTxt(self,pos,l):
+        return "?" * l
 
 class ToolMenuMock:
     def __init__(self):
@@ -27,10 +31,23 @@ class ToolMenuMock:
     def enableRegionButtons(self):
         print("enableRegionButtons")
 
+def check(cells,grid):
+    cellCnt            = 0
+    for i in grid.selectionModel.selectedIndexes():
+        if (i.column(),i.row()) not in cells:
+            raise Exception("Cell %d,%d (%d) should not be selected!" % (i.column(),i.row(),i.row()*width+i.column()))
+        else:
+            cellCnt += 1
+            cellsChecked.append((i.column(),i.row()))
+    if cellCnt != len(cells):
+        print("cellsChecked: %s" % cellsChecked)
+        raise Exception("Not all needed cells selected! (%d != %d)" % (cellCnt,len(cells)))
+
 if __name__ == "__main__":
     app                = QtWidgets.QApplication(sys.argv)
     Globals.mainWindow = MainWindowMock()
     Globals.toolMenu   = ToolMenuMock()
+    Globals.DEBUG      = True
     width              = 32
     height             = 32
     grid               = MarkableGrid(Globals.mainWindow,width,height)
@@ -39,20 +56,37 @@ if __name__ == "__main__":
 
     cells              = SelectedCells()
     cellsChecked       = SelectedCells()
-    cells.append((0,width))
-    cells.append((1,1))
-    cells.append((1,0))
+    cells.append((width,0))
     grid.temp_select(width-1,1)
 
-    cellCnt            = 0
-    for i in grid.selectionModel.selectedIndexes():
-        if (i.row(),i.column()) not in cells:
-            raise Exception("Cell %d,%d should not be selected!" % (i.row(),i.column()))
-        else:
-            cellCnt += 1
-            cellsChecked.append((i.row(),i.column()))
-    if cellCnt != len(cells):
-        print("cellsChecked: %s" % cellsChecked)
-        raise Exception("Not all needed cells selected! (%d != %d)" % (cellCnt,len(cells)))
+    print("Check 1")
+    check(cells,grid)
+
+    cells              = SelectedCells()
+    cellsChecked       = SelectedCells()
+    cells.append((width,0))
+    cells.append((1,1))
+    cells.append((0,1))
+    grid.temp_select(width-1,2)
+
+    print("Check 2")
+    check(cells,grid)
+    
+    cells              = SelectedCells()
+    cellsChecked       = SelectedCells()
+    grid.temp_select(8*width+12,width)
+    for i in range(8*width+12,8*width+12+width):
+        x  = i % width
+        y  = int((i-x)/width)
+        x += 1
+        cells.append((x,y))
+        print("select %d,%d" % (x,y))
+        if x == 1:
+            if (0,y) not in cells:
+                cells.append((0,y))
+                print("select %d,%d" % (0,y))
+
+    print("Check 3")
+    check(cells,grid)
     
     sys.exit(app.exec_())
