@@ -40,7 +40,7 @@ class SearchWindow(QtWidgets.QMainWindow,SearchUI):
             self.searchData  = self.txtSearch.text()
         
     def accept(self):
-        print("accept")
+        dbg("accept")
         self.prepareSearch()
         pos = self.searchNext()
         if pos <= 0:
@@ -50,7 +50,7 @@ class SearchWindow(QtWidgets.QMainWindow,SearchUI):
         super().hide()
 
     def reject(self):
-        print("reject")
+        dbg("reject")
         self.hide()
 
     def searchAll(self):
@@ -59,7 +59,7 @@ class SearchWindow(QtWidgets.QMainWindow,SearchUI):
         self.hide()
 
     def searchNext(self):
-        print("searchNext")
+        dbg("searchNext")
         if self.pos == -1:
             return
         self.file.seek(self.pos)
@@ -76,10 +76,10 @@ class SearchWindow(QtWidgets.QMainWindow,SearchUI):
                 brange = bytes(buf[p:p+len(self.searchData)]).lower()
                 #if brange == bytes(self.searchData,"UTF-8").lower():
                 self.pos += p
-                print("searchNext text: %s (searched %s, found at idx %d, pos: %08x)" % (brange,self.searchData,p,self.pos))
+                dbg("searchNext text: %s (searched %s, found at idx %d, pos: %08x)" % (brange,self.searchData,p,self.pos))
                 break;
                 #else:
-                #    print("not equal ... %s(%d) %s(%d)" % (brange,len(brange),self.searchData,len(self.searchData)))
+                #    dbg("not equal ... %s(%d) %s(%d)" % (brange,len(brange),self.searchData,len(self.searchData)))
                 #    self.pos += p + 1
             except(ValueError):
                 self.pos += self.file.cacheSize
@@ -90,5 +90,5 @@ class SearchWindow(QtWidgets.QMainWindow,SearchUI):
         if(self.pos >= self.size):
             self.pos = -1
             return -1
-        print("searchNext result:%08x" % self.pos)
+        dbg("searchNext result:%08x" % self.pos)
         return pos

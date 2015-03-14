@@ -1,6 +1,6 @@
 from PyQt5.QtCore    import Qt
 from PyQt5.QtCore    import QMutex
-
+from   Globals import *
 
 CACHE_SIZE = 100*1024*1024
 #CACHE_SIZE = 50000
@@ -21,19 +21,19 @@ class CachedReader:
         return False
 
     def getFromCache(self,size):
-        #print("CachedReader.getFromCache(%d)" % size)
+        #dbg("CachedReader.getFromCache(%d)" % size)
         rpos      = self.pos - self.cachePos
         result    = self.cache[rpos:rpos+size]
         self.pos += size
-        #print("returned %d bytes from %d bytes" % (len(result),len(self.cache)))
+        #dbg("returned %d bytes from %d bytes" % (len(result),len(self.cache)))
         return result
 
     def seek(self,pos):
-        #print("CachedReader.seek(%08x)" % pos)
+        #dbg("CachedReader.seek(%08x)" % pos)
         self.pos = pos
         
     def read(self,size):
-        #print("CachedReader.read(%d) from pos: %08x" % (size,self.pos))
+        #dbg("CachedReader.read(%d) from pos: %08x" % (size,self.pos))
         if(not self.withinCache(size)):
             self.file.locker.lock()
             orgPos = self.file.tell()
@@ -44,7 +44,7 @@ class CachedReader:
             
             self.file.seek(orgPos)
             self.file.locker.unlock()
-            #print("read %d bytes from %d bytes" % (len(self.cache),self.cacheSize))
+            #dbg("read %d bytes from %d bytes" % (len(self.cache),self.cacheSize))
         result = self.getFromCache(size)
         return result
     

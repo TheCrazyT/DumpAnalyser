@@ -1,6 +1,27 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from MarkedRegions    import *
 import Globals
+from   Globals import *
+
+
+class CustomSelection(QtCore.QItemSelection):
+   def __init__(self,firstIdx,lastIdx):
+      QtCore.QItemSelection.__init__(self,firstIdx,lastIdx)
+      width  = Globals.hexGrid.width
+      height = Globals.hexGrid.height
+      self.firstIdx = firstIdx.row()*(width+2)+firstIdx.column()
+      self.lastIdx  = lastIdx.row()*(width+2)+lastIdx.column()
+      self.idxList  = None
+   def indexes(self):
+      width = Globals.hexGrid.width
+      row   = Globals.hexGrid.row
+      if self.idxList == None:
+         self.idxList = []
+         for i in range(self.firstIdx,self.lastIdx):
+            column = i % (width+2)
+            row    = int((i - column) / (width+2))
+            self.idxList.append(Globals.hexGrid.model.createIndex(row,column))
+      return self.idxList
 
 class MySelectionModel(QtCore.QItemSelectionModel):
    def __init__(self,model):
@@ -9,31 +30,48 @@ class MySelectionModel(QtCore.QItemSelectionModel):
    def select(self,i,flags):
       width  = Globals.hexGrid.width
       height = Globals.hexGrid.height
-      if type(i) is not QtCore.QModelIndex:
+      if (type(i) is CustomSelection)or(type(i) is QtCore.QItemSelection):
          if(flags & QtCore.QItemSelectionModel.Select):
             Globals.toolMenu.enableRegion()
             Globals.toolMenu.enableRegionButtons()
             maxIidx = None
             minIidx = None
-            for k in i.indexes():
+
+            cIdx       = self.currentIndex()
+            if (type(i) is CustomSelection):
+               minIidx = i.firstIdx
+               maxIidx = i.lastIdx
+            elif (type(i) is QtCore.QItemSelection):
+               maxR    = None
+               minR    = None
+               for k in i.indexes():
+                  if (maxR == None) or (k.row()>maxR):
+                     maxR = k.row()
+                  if (minR == None) or (k.row()<minR):
+                     minR = k.row()
+                     
+               for k in i.indexes():
+                  idx = k.row()*(width+2)+k.column()
+                  if k.row() == minR:
+                     if (minIidx == None)or(idx>minIidx):
+                        minIidx = k.row()*(width+2)+k.column()
+                  if k.row() == maxR:
+                     if (maxIidx == None)or(idx<maxIidx):
+                        maxIidx = k.row()*(width+2)+k.column()
                if minIidx == None:
-                  minIidx = k.row()*width+k.column()
-               if maxIidx == None:
-                  maxIidx = k.row()*width+k.column()
-               idx = k.row()*width+k.column()
-               if idx<minIidx:
-                  minIidx = k.row()*width+k.column()
-               if idx>maxIidx:
-                  maxIidx = k.row()*width+k.column()
+                  return
+            #maxIidx = cIdx.row()*width+cIdx.column()
+
+            col1 = minIidx % (width+2)
+            col2 = maxIidx % (width+2)
+            row1 = int((minIidx-col1)/(width+2))
+            row2 = int((maxIidx-col2)/(width+2))
+            if cIdx.column()!=-1:
+               if cIdx.column()!=col2:
+                  col1 = col2
+                  col2 = cIdx.column()
             i.clear()
-            col1 = minIidx % width
-            col2 = maxIidx % width
-            row1 = int((minIidx-col1)/width)
-            row2 = int((maxIidx-col2)/width)
-            cIdx = self.currentIndex()
-            if (cIdx.column()==col1):
-               col1 = col2
-               col2 = cIdx.column()
+            dbg("cIdx.column(): %d,minIidx: %d, maxIidx: %d, row1: %d, row2: %d, col1: %d, col2: %d" % (cIdx.column(),minIidx,maxIidx,row1,row2,col1,col2))
             if row1+2<=row2:
                idx1 = self.model.createIndex(row1+1,0)
                idx2 = self.model.createIndex(row2-1,width)
@@ -80,7 +118,7 @@ class MyTableModel(QtCore.QAbstractTableModel):
                         c = Globals.hexGrid.text[x][y]
                         return QtGui.QBrush(c.color)
                   except(IndexError):
-                     #print("data(%d,%d)" % (x,y))
+                     #dbg("data(%d,%d)" % (x,y))
                      pass
       if not index.isValid():
          return None
@@ -94,11 +132,11 @@ class MyTableModel(QtCore.QAbstractTableModel):
    def headerData(self, col, orientation, role):
       return None
    def canFetchMore(self,parent):
-      print("canFetchMore")
+      dbg("canFetchMore")
       return True
    def fetchMore (self,parent):
-      print("fetchMore")
-      print(parent)
+      dbg("fetchMore")
+      dbg(parent)
       return None
    def flags(self,index):
       return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
@@ -112,16 +150,17 @@ class MarkableGrid(QtWidgets.QTableView):
       font  = QtGui.QFont("Monospace", 8);
       font.setStyleHint(QtGui.QFont.TypeWriter);
       self.setFont(font);
-      self.regions       = MarkedRegions()
-      self.allReferences = []
-      self.viewRegions   = []
-      self.width         = width
-      self.height        = height
-      self.text          = None
+      self.regions           = MarkedRegions()
+      self.allReferences     = ReferenceList()
+      self.allGuessedRegions = []
+      self.viewRegions       = []
+      self.width             = width
+      self.height            = height
+      self.text              = None
 
    def mousePressEvent(self,event):
-      print("mousePressEvent")
-      print(event)
+      dbg("mousePressEvent")
+      dbg(event)
       super().mousePressEvent(event)
       rect   = self.viewport().rect()
       index  = self.currentIndex()
@@ -153,8 +192,8 @@ class MarkableGrid(QtWidgets.QTableView):
                self.text[item.x][item.y] = item
 
    def onScroll(self,*args):
-      print("scrollTo")
-      print(args)
+      dbg("scrollTo")
+      dbg(args)
       self.updateView()
 
    def update(self):
@@ -193,7 +232,7 @@ class MarkableGrid(QtWidgets.QTableView):
       self.viewRegions = []
 
    def calc_view_regions(self,startPos,endPos):
-      print("calc_view_regions %08x,%08x" % (startPos,endPos))
+      dbg("calc_view_regions %08x,%08x" % (startPos,endPos))
       regionsInView = self.regions.findWithin(startPos,endPos)
       regionEntryList = []
       for r in regionsInView:
@@ -209,10 +248,12 @@ class MarkableGrid(QtWidgets.QTableView):
                for j in range(0,4):
                   if ((i-j) in self.allReferences):
                      regionEntryList.append((MarkableCell(self,x,y),QtGui.QColor(0x00FF00)))
+                  elif ((i-j) in self.allGuessedRegions):
+                     regionEntryList.append((MarkableCell(self,x,y),QtGui.QColor(0x2222FF)))
          self.viewRegions.append(regionEntryList)
    
    def resize_region(self,region,newStartPos,newEndPos):
-      print("resize_region %08x %08x" % (newStartPos,newEndPos) )
+      dbg("resize_region %08x %08x" % (newStartPos,newEndPos) )
       if newStartPos!=region.startPos:
          for ref in region.references:
             self.allReferences.remove(ref)
@@ -222,7 +263,7 @@ class MarkableGrid(QtWidgets.QTableView):
       region.references = []
       
    def merge_regions(self,regions,startPos,endPos):
-      print("merge_regions")
+      dbg("merge_regions")
       startPoses = []
       endPoses   = []
       startPoses.append(startPos)
@@ -240,7 +281,7 @@ class MarkableGrid(QtWidgets.QTableView):
       self.regions.append(newRegion)
       
    def new_region(self,startPos,endPos):
-      print("%d,%d" % (startPos,endPos))
+      dbg("%d,%d" % (startPos,endPos))
       r            = MarkedRegion(startPos,endPos-startPos)
       self.regions.add(r)
 
@@ -249,13 +290,13 @@ class MarkableGrid(QtWidgets.QTableView):
       (NEW_REGION,MERGE_REGIONS,RESIZE_REGION)=range(0,3)
       regions = self.regions.findWithin(startPos,endPos)
       if(len(regions)==0):
-         print("NEW_REGION")
+         dbg("NEW_REGION")
          return (NEW_REGION,None)
       elif(len(regions)>1):
-         print("MERGE_REGION")
+         dbg("MERGE_REGION")
          return (MERGE_REGIONS,regions)
       elif(len(regions)==1):
-         print("RESIZE_REGION")
+         dbg("RESIZE_REGION")
          return (RESIZE_REGION,regions[0])
 
    def get_start_end_sel(self):
@@ -274,7 +315,7 @@ class MarkableGrid(QtWidgets.QTableView):
             x2 = x.column()
          elif (x2==None) or (x.row()==y2) and (x.column()>x2):
             x2 = x.column()
-      print("get_start_end_sel %d %d - %d %d" % (x1,y1,x2,y2))
+      dbg("get_start_end_sel %d %d - %d %d" % (x1,y1,x2,y2))
       startPos = (x1-1) + y1*self.width
       endPos   = (x2-1) + y2*self.width
       return (startPos,endPos)
@@ -282,7 +323,7 @@ class MarkableGrid(QtWidgets.QTableView):
    def store_region(self):
 
       (startPos,endPos) = self.get_start_end_sel()
-      print("store_region %d-%d" % (startPos,endPos))
+      dbg("store_region %d-%d" % (startPos,endPos))
       (action,result) = self.detect_region_action(startPos,endPos)
       if   action == 0:
          self.new_region(startPos,endPos)
@@ -295,12 +336,12 @@ class MarkableGrid(QtWidgets.QTableView):
       self.selectionModel.clearSelection()
 
    def store_nullstring(self):
-      print("store_nullstring")
+      dbg("store_nullstring")
       (startPos,endPos) = self.get_start_end_sel()
       regions      = self.regions.findWithin(startPos,endPos)
-      print("len(regions): %d" % len(regions))
+      dbg("len(regions): %d" % len(regions))
       if len(regions) != 1:
-         print("%d region found" % len(regions))
+         dbg("%d region found" % len(regions))
          return
       r            = regions[0]
       r.add_nullstring(startPos)
@@ -314,21 +355,21 @@ class MarkableGrid(QtWidgets.QTableView):
          return
 
    def delete_region(self,region):
-      print("delete_region")
+      dbg("delete_region")
       for ref in region.references:
             self.allReferences.remove(ref)
       self.regions.remove(region)
       
    def erase(self):
       (startPos,endPos) = self.get_start_end_sel()
-      print("erase %08x %08x" % (startPos,endPos))
+      dbg("erase %08x %08x" % (startPos,endPos))
       regions = self.regions.findWithin(startPos,endPos)
       self.selectionModel.clearSelection()
       if len(regions) != 1:
-         print("%d region found" % len(regions))
+         dbg("%d region found" % len(regions))
          return
       region = regions[0]
-      print("region %08x %08x" % (region.startPos,region.endPos))
+      dbg("region %08x %08x" % (region.startPos,region.endPos))
       if (startPos <= region.startPos)and(endPos >= region.endPos):
          self.delete_region(region)
       else:
@@ -344,20 +385,18 @@ class MarkableGrid(QtWidgets.QTableView):
       self.selectionModel.clearSelection()
       
    def temp_select(self,startPos,length):
-      endPos       = startPos + length
-      selectedItems = QtCore.QItemSelection()
-
-      x1 = startPos % self.width
-      y1 = int((startPos - x1) / self.width)
+      x1  = startPos % self.width
+      y1  = int((startPos - x1) / self.width)
       x1 += 1
 
-      x2 = endPos % self.width
-      y2 = int((endPos - x2) / self.width)
+      endPos = startPos + length
+      x2     = endPos % self.width
+      y2     = int((endPos - x2) / self.width)
 
-      print("temp_select %d,%d - %d,%d" % (x1,y1,x2,y2))
-      topLeft       = self.model.index(y1,x1,QtCore.QModelIndex())
-      bottomRight   = self.model.index(y2,x2,QtCore.QModelIndex())
-      selectedItems.select(topLeft,bottomRight)
+      dbg("temp_select %d,%d - %d,%d" % (x1,y1,x2,y2))
+      first         = self.model.index(y1,x1,QtCore.QModelIndex())
+      last          = self.model.index(y2,x2,QtCore.QModelIndex())
+      selectedItems = CustomSelection(first,last)
       self.selectionModel.clearSelection()
       self.selectionModel.select(selectedItems, QtCore.QItemSelectionModel.Select)
       
@@ -374,7 +413,7 @@ class MarkableCell(QtWidgets.QWidget):
       self.color = color
 
    def mousePressEvent(self,event):
-      print("mousePressEvent")
+      dbg("mousePressEvent")
       if (event.button()== QtCore.Qt.RightButton):
           reference = None
           startPos  = Globals.mainWindow.pos+self.y*Globals.hexGrid.width+self.x

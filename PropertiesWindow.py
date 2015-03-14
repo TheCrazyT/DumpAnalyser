@@ -1,5 +1,6 @@
 from PyQt5         import QtCore,QtGui,QtWidgets,uic
 import Globals
+from   Globals import *
 
 (TYPE_REF,TYPE_REFS) = range(0,2)
 PropertiesUI = uic.loadUiType("properties.ui")[0]
@@ -8,11 +9,13 @@ class PropertiesWindow(QtWidgets.QMainWindow,PropertiesUI):
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self)
-        self.parent = parent
         self.setupUi(self)
+        self.parent   = parent
+        self.showRefs = True
+        self.ref      = 0
 
     def gotoRef(self,item):
-        print("gotoRef")
+        dbg("gotoRef")
         pos = int(item.text(0),16)
         if(self.parent != None):
             Globals.mainWindow.setPos(pos)
@@ -34,7 +37,7 @@ class PropertiesWindow(QtWidgets.QMainWindow,PropertiesUI):
             for r in region.references:
                 tli      = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_REFS
-                tli.setText(0,"%08x" % r)
+                tli.setText(0,"%08x" % r.addr)
                 tliRef.addChild(tli)
             self.tvProps.addTopLevelItem(tliRef)
             tliRef.setExpanded(True)

@@ -17,6 +17,6 @@ class ReferencesWindow(QtWidgets.QMainWindow,RegionsUI):
     def show(self):
         self.lstRefs.clear()
         for r in Globals.hexGrid.allReferences:
-            self.lstRefs.addItem("%08x" % r)
+            self.lstRefs.addItem("%08x" % r.addr)
         super().show()
         self.activateWindow()

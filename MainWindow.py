@@ -4,6 +4,7 @@ import os
 import db
 import string
 import Globals
+from   Globals import *
 from struct            import *
 from PyQt5             import QtCore, QtGui, QtWidgets, uic
 from MarkableGrid      import *

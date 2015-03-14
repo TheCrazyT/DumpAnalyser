@@ -1,8 +1,21 @@
 import db
 import Globals
+from   Globals import *
 from PyQt5 import QtCore, QtGui
 
 lastId = 0
+
+class ReferenceList(list):
+    def __contains__(self,r):
+        if type(r) is Reference:
+            for ref in self:
+                if ref.addr == r.addr:
+                    return True
+        else:
+            for ref in self:
+                if ref.addr == r:
+                    return True
+        return False
 
 def genNewId():
     global lastId
@@ -23,7 +36,7 @@ class MarkedRegions():
         self.regionList.remove(region)
 
     def findWithin(self,startPos,endPos):
-        print("findWithin %08x,%08x" % (startPos,endPos))
+        dbg("findWithin %08x,%08x" % (startPos,endPos))
         result = []
         for r in self.regionList:
             if endPos       >= r.startPos and endPos   <= r.endPos:
@@ -42,7 +55,7 @@ class MarkedRegions():
             if r.id>lastId:
                 lastId = r.id + 1
             allRefs.extend(r.references)
-        print(allRefs)
+        dbg(allRefs)
         Globals.hexGrid.allReferences = allRefs
         
     def save(self):
@@ -50,7 +63,7 @@ class MarkedRegions():
             r.save()
 
 class MarkedRegion():
-    def __init__(self,startPos,length,id=None,color="red",fullyScanned=False,references=[]):
+    def __init__(self,startPos,length,id=None,color="red",fullyScanned=False,references=ReferenceList()):
         if id==None:
             id = genNewId()
         self.id           = id
@@ -85,7 +98,7 @@ class NullString():
         self.startPos = startPos
         self.endPos   = -1
     def get_color(self,pos,char):
-        #print("NullString get_color %d %d| %d %d" % (pos,char,self.startPos,self.endPos))
+        #dbg("NullString get_color %d %d| %d %d" % (pos,char,self.startPos,self.endPos))
         if self.endPos == -1:
             if pos>=self.startPos:
                 if char == 0:
@@ -95,3 +108,9 @@ class NullString():
             if (pos>=self.startPos) and (pos<=self.endPos):
                 return QtGui.QColor(0x00FFFF)
         return None
+
+class Reference():
+    def __init__(self,addr,fullyScanned=False):
+        self.addr           = addr
+        self.fullyScanned   = fullyScanned
+        self.guessedRegions = []

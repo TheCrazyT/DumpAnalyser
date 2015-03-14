@@ -1,5 +1,6 @@
 from PyQt5 import QtCore,QtGui,QtWidgets,uic
 import Globals
+from   Globals import *
 
 RvaMapUI = uic.loadUiType("rva_map.ui")[0]
 
@@ -19,12 +20,12 @@ class RvaWindow(QtWidgets.QMainWindow,RvaMapUI):
         self.setFocus()
         
     def accept(self):
-        print("accept")
+        dbg("accept")
         for line in self.rvaInput.toPlainText().split("\n"):
             (rva,vaddr,size) = line.split(",")
             Globals.mainWindow.rvaList.append((int(rva,16),int(vaddr,16),int(size,16)))
         self.hide()
 
     def reject(self):
-        print("reject")
+        dbg("reject")
         self.hide()

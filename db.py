@@ -20,11 +20,11 @@ def close():
 
 def loadRegionReferences(regionId):
     global cur
-    references = []
+    references = ReferenceList()
     cur.execute("SELECT pos FROM regions_ref WHERE regionId=? GROUP BY pos",(regionId,))
     rows = cur.fetchall()
     for row in rows:
-        references.append(row[0])
+        references.append(Reference(row[0]))
     return references
 
 def loadRegions():
@@ -38,8 +38,8 @@ def loadRegions():
     
 def saveRegionRefs(region):
     global cur
-    for pos in region.references:
-        cur.execute("INSERT INTO regions_ref (regionId,pos) VALUES (?,?)",(region.id,pos))
+    for r in region.references:
+        cur.execute("INSERT INTO regions_ref (regionId,pos) VALUES (?,?)",(region.id,r.addr))
 
 def saveRegion(region):
     global cur
