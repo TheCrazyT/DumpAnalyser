@@ -66,10 +66,11 @@ class MySelectionModel(QtCore.QItemSelectionModel):
             col2 = maxIidx % (width+2)
             row1 = int((minIidx-col1)/(width+2))
             row2 = int((maxIidx-col2)/(width+2))
-            if cIdx.column()!=-1:
-               if cIdx.column()!=col2:
-                  col1 = col2
-                  col2 = cIdx.column()
+            if (not type(i) is CustomSelection):
+               if cIdx.column()!=-1:
+                  if cIdx.column()!=col2:
+                     col1 = col2
+                     col2 = cIdx.column()
             if row1!=row2:
                i.clear()
             dbg("cIdx.column(): %d,minIidx: %d, maxIidx: %d, row1: %d, row2: %d, col1: %d, col2: %d" % (cIdx.column(),minIidx,maxIidx,row1,row2,col1,col2))
