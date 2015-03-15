@@ -17,4 +17,4 @@ if __name__ == "__main__":
     Globals.mainWindow = MainWindowMock()
     region.references.append(Reference(0x123456))
     p.show(region)
-    sys.exit(app.exec_())
+    sys.exit(0)

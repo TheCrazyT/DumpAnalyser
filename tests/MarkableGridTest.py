@@ -108,4 +108,3 @@ if __name__ == "__main__":
     print("Check 4")
     check(cells,grid)
     sys.exit(0)
-    sys.exit(app.exec_())
