@@ -100,15 +100,15 @@ class ReferenceSearcher(QtCore.QThread):
             self.file.seek(self.pos)
             buf           = self.file.read(self.file.cacheSize)
             time.sleep(1)
-            n = 0
+            k = 0
             for r in regions:
                 if r.fullyScanned:
                     continue
                 time.sleep(0.1)
                 n = 0
                 try:
-                    searchData   = searchDataList[n]
-                    n           += 1
+                    searchData   = searchDataList[k]
+                    k           += 1
                     p            = n+buf[n:].index(searchData)
                     n            = p+1
                     if self.pos+p not in r.references:
