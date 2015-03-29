@@ -6,16 +6,54 @@ from PyQt5 import QtCore, QtGui
 lastId = 0
 
 class ReferenceList(list):
-    def __contains__(self,r):
-        if type(r) is Reference:
-            for ref in self:
-                if ref.addr == r.addr:
-                    return True
+    def __init__(self):
+        self.range = QtCore.QItemSelectionRange()
+
+    def __contains__(self,ref):
+        addr = None
+        if type(ref) is Reference:
+            addr = ref.addr
         else:
-            for ref in self:
-                if ref.addr == r:
-                    return True
-        return False
+            addr = ref
+
+        width = Globals.hexGrid.width
+
+        col = addr % width
+        row = (addr - col) / width
+        idx = self.model.createIndex(row,col)
+        return self.range.contains(idx)
+
+    def __add__(self, ref):
+        addr = None
+        if type(ref) is Reference:
+            addr = ref.addr
+        else:
+            addr = ref
+
+        width = Globals.hexGrid.width
+
+        col1  = addr % width
+        row1  = (addr - col1) / width
+
+        col2  = addr % width
+        row2  = (addr - col1) / width
+
+        if row1+2<=row2:
+           idx1 = self.model.createIndex(row1+1,0)
+           idx2 = self.model.createIndex(row2-1,width)
+           sr   = QtCore.QItemSelectionRange(idx1,idx2)
+           self.range.append(sr)
+        if row1<row2:
+           idx1 = self.model.createIndex(row1,col1)
+           idx2 = self.model.createIndex(row1,width)
+           sr   = QtCore.QItemSelectionRange(idx1,idx2)
+           self.range.append(sr)
+           idx1 = self.model.createIndex(row2,0)
+           idx2 = self.model.createIndex(row2,col2)
+           sr   = QtCore.QItemSelectionRange(idx1,idx2)
+           self.range.append(sr)
+        super.add(ref)
+
 
 def genNewId():
     global lastId
@@ -63,7 +101,7 @@ class MarkedRegions():
             r.save()
 
 class MarkedRegion():
-    def __init__(self,startPos,length,id=None,color="red",fullyScanned=False,references=ReferenceList()):
+    def __init__(self,startPos,length,id=None,color="red",fullyScanned=False,pointersFullyScanned=False):
         if id==None:
             id = genNewId()
         self.id           = id
@@ -72,9 +110,11 @@ class MarkedRegion():
         self.endPos       = startPos + length
         self.color        = color
         self.properties   = []
-        self.references   = references
-        self.fullyScanned = fullyScanned
-        self.virtualPos   = None
+        self.pointers     = []
+        self.references   = ReferenceList()
+        self.fullyScanned         = fullyScanned
+        self.pointersFullyScanned = pointersFullyScanned
+        self.virtualPos           = None
 
     def save(self):
         db.saveRegion(self)

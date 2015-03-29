@@ -7,8 +7,8 @@ from   Globals import *
 class CustomSelection(QtCore.QItemSelection):
    def __init__(self,firstIdx,lastIdx):
       QtCore.QItemSelection.__init__(self,firstIdx,lastIdx)
-      width  = Globals.hexGrid.width
-      height = Globals.hexGrid.height
+      width         = Globals.hexGrid.width
+      height        = Globals.hexGrid.height
       self.firstIdx = firstIdx.row()*(width+2)+firstIdx.column()
       self.lastIdx  = lastIdx.row()*(width+2)+lastIdx.column()
       self.idxList  = None
@@ -130,7 +130,7 @@ class MyTableModel(QtCore.QAbstractTableModel):
          return Globals.mainWindow.readTxt(index.row()*Globals.hexGrid.width,Globals.hexGrid.width)
       if index.column()==0:
          return "%08x" % (index.row()*Globals.hexGrid.width)
-      return Globals.mainWindow.readHex(index.row()*Globals.hexGrid.width+index.column())
+      return Globals.mainWindow.readHex(index.row()*Globals.hexGrid.width+index.column()-1)
    def headerData(self, col, orientation, role):
       return None
    def canFetchMore(self,parent):
@@ -335,6 +335,7 @@ class MarkableGrid(QtWidgets.QTableView):
       self.viewRegions = []
       self.updateView()
       self.selectionModel.clearSelection()
+      Globals.rSearcher.invalidatePointerSearch(self.regions.regionList)
 
    def store_nullstring(self):
       dbg("store_nullstring")

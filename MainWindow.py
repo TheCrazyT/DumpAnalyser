@@ -2,11 +2,13 @@
 import sys
 import os
 import db
+import time
 import string
 import Globals
 from   Globals import *
 from struct            import *
 from PyQt5             import QtCore, QtGui, QtWidgets, uic
+from PyQt5.QtCore      import QMutex, QMutexLocker
 from MarkableGrid      import *
 from ToolMenu          import *
 
@@ -35,7 +37,6 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       self.rSearcher.destroy()
       if(self.opened_file != None):
          self.opened_file.close()
-      Gtk.main_quit()
 
    def showRegionsWindow(self):
       Globals.regionsWindow.show()
@@ -55,6 +56,19 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
       for r in Globals.hexGrid.regions.regionList:
          r.references   = []
          r.fullyScanned = False
+      tmpSBRR = Globals.SLEEP_BETWEEN_REGION_READ
+      tmpSBRS = Globals.SLEEP_BETWEEN_REGION_SCAN
+      tmpSBR  = Globals.SLEEP_BETWEEN_REGIONS
+      Globals.SLEEP_BETWEEN_REGION_READ = 0
+      Globals.SLEEP_BETWEEN_REGION_SCAN = 0
+      Globals.SLEEP_BETWEEN_REGIONS     = 0
+      Globals.rSearcher.forceScan       = True
+      time.sleep(11)
+      with QMutexLocker(Globals.rSearcher.lock):
+         time.sleep(1)
+      Globals.SLEEP_BETWEEN_REGION_READ = tmpSBRR
+      Globals.SLEEP_BETWEEN_REGION_SCAN = tmpSBRS
+      Globals.SLEEP_BETWEEN_REGIONS     = tmpSBR
 
    def search(self,pos):
       self.setPos(pos)
@@ -68,7 +82,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
          db.close()
 
    def load(self):
-      (filename,unknown) = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file','./Save','*.sav')
+      (filename,unknown) = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file','./save','*.sav')
       if filename!= "":
          try:
             filename.index(".sav")
@@ -85,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
          self.setPos(pos)
       
    def save(self):
-      (filename,unknown) = QtWidgets.QFileDialog.getSaveFileName(self, 'Save file','./Save','*.sav')
+      (filename,unknown) = QtWidgets.QFileDialog.getSaveFileName(self, 'save file','./save','*.sav')
       if filename!= "":
          try:
             filename.index(".sav")
@@ -99,6 +113,7 @@ class MainWindow(QtWidgets.QMainWindow,MainWindowUI):
          db.createRvaListTbl()
          db.createRegionsTbl()
          db.createRegionsRefTbl()
+         db.createRegionsPropTbl()
          db.saveRvaList(self.rvaList)
          Globals.hexGrid.save()
          db.commit()
