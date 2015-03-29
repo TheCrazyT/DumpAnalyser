@@ -1,80 +1,81 @@
-from PyQt5         import QtCore,QtGui,QtWidgets,uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import Globals
 from   Globals import *
 
-(TYPE_REF,TYPE_REFS,TYPE_POINTER,TYPE_REGION) = range(0,4)
+(TYPE_REF, TYPE_REFS, TYPE_POINTER, TYPE_REGION) = range(0, 4)
 PropertiesUI = uic.loadUiType("properties.ui")[0]
 
-class PropertiesWindow(QtWidgets.QMainWindow,PropertiesUI):
 
+class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self)
         self.setupUi(self)
-        self.parent   = parent
-        self.showRefs = True
-        self.ref      = 0
+        self.parent = parent
+        self.show_refs = True
+        self.ref = 0
 
-    def gotoRef(self,pos,ptrSize):
+    def goto_ref(self, pos, ptr_size):
         dbg("gotoRef")
-        if(self.parent != None):
-            Globals.mainWindow.setPos(pos)
-            Globals.hexGrid.temp_select(pos,ptrSize)
+        if (self.parent != None):
+            Globals.main_window.set_pos(pos)
+            Globals.hex_grid.temp_select(pos, ptr_size)
 
-    def itemClick(self,item):
+    def item_click(self, item):
         if item.type == TYPE_REGION:
-            Globals.mainWindow.setPos(item.data)
+            Globals.main_window.set_pos(item.data)
         if item.type == TYPE_REFS:
-            self.gotoRef(item.data,4)
+            self.goto_ref(item.data, 4)
         if item.type == TYPE_REF:
-            Globals.mainWindow.setPos(item.data)
+            Globals.main_window.set_pos(item.data)
         if item.type == TYPE_POINTER:
-            Globals.mainWindow.setPos(item.data)
+            Globals.main_window.set_pos(item.data)
 
-    def show(self,region):
+    def show(self, region,show_window=True):
         self.tvProps.clear()
         if region != None:
-            tliRef = QtWidgets.QTreeWidgetItem()
-            tliRef.data = region.startPos
-            tliRef.type = TYPE_REGION
-            if region.virtualPos == None:
-                Globals.rSearcher.calculateSearchDataByRva(region)
-            tliRef.setText(0,"References of %08x (%08x)" % (region.startPos,region.virtualPos))
+            tli_ref = QtWidgets.QTreeWidgetItem()
+            tli_ref.data = region.start_pos
+            tli_ref.type = TYPE_REGION
+            if region.virtual_pos == None:
+                Globals.r_searcher.calculate_search_data_by_rva(region)
+            tli_ref.setText(0, "References of %08x (%08x)" % (region.start_pos, region.virtual_pos))
             for r in region.references:
-                tli      = QtWidgets.QTreeWidgetItem()
+                tli = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_REFS
                 tli.data = r.addr
-                tli.setText(0,"%08x" % r.addr)
-                tliRef.addChild(tli)
-            self.tvProps.addTopLevelItem(tliRef)
-            tliRef.setExpanded(True)
-            
-            tliRef = QtWidgets.QTreeWidgetItem()
-            tliRef.data = region.startPos
-            tliRef.type = TYPE_REGION
-            tliRef.setText(0,"Pointers of %08x (%08x)" % (region.startPos,region.virtualPos))
+                tli.setText(0, "%08x" % r.addr)
+                tli_ref.addChild(tli)
+            self.tvProps.addTopLevelItem(tli_ref)
+            tli_ref.setExpanded(True)
+
+            tli_ref = QtWidgets.QTreeWidgetItem()
+            tli_ref.data = region.start_pos
+            tli_ref.type = TYPE_REGION
+            tli_ref.setText(0, "Pointers of %08x (%08x)" % (region.start_pos, region.virtual_pos))
             for p in region.pointers:
-                tli      = QtWidgets.QTreeWidgetItem()
+                tli = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_POINTER
-                ref      = Globals.rSearcher.calculatePointerPosRVA(p.addr)
+                ref = Globals.r_searcher.calculate_pointer_pos_rva(p.addr)
                 if ref != None:
-                    vpos     = Globals.rSearcher.calculateVirtByRVA(ref)
+                    vpos = Globals.r_searcher.calculate_virt_by_rva(ref)
                     if vpos != None:
-                        tli.setText(0,"+%08x to %08x (%08x)" % (p.addr-region.startPos,ref,vpos))
+                        tli.setText(0, "+%08x to %08x (%08x)" % (p.addr - region.start_pos, ref, vpos))
                         tli.data = ref
-                        tliRef.addChild(tli)
-            self.tvProps.addTopLevelItem(tliRef)
-            tliRef.setExpanded(True)
-            
-        if self.showRefs:
+                        tli_ref.addChild(tli)
+            self.tvProps.addTopLevelItem(tli_ref)
+            tli_ref.setExpanded(True)
+
+        if self.show_refs:
             if self.ref:
-                tliRef = QtWidgets.QTreeWidgetItem()
-                vpos     = Globals.rSearcher.calculateVirtByRVA(self.ref)
+                tli_ref = QtWidgets.QTreeWidgetItem()
+                vpos = Globals.r_searcher.calculate_virt_by_rva(self.ref)
                 if vpos != None:
-                    tliRef.setText(0,"Selected reference leads to %08x (%08x)" % (self.ref,vpos))
-                    tliRef.type = TYPE_REF
-                    tliRef.data = self.ref
-                    self.tvProps.addTopLevelItem(tliRef)
-                tliRef.setExpanded(True)
-            
-        super().show()
-        super().activateWindow()
+                    tli_ref.setText(0, "Selected reference leads to %08x (%08x)" % (self.ref, vpos))
+                    tli_ref.type = TYPE_REF
+                    tli_ref.data = self.ref
+                    self.tvProps.addTopLevelItem(tli_ref)
+                tli_ref.setExpanded(True)
+
+        if show_window:
+            super().show()
+            super().activateWindow()

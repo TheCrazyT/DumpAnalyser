@@ -155,7 +155,7 @@
    <sender>action_Import_RVA_VAddr_list</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>showRVAWindow()</slot>
+   <slot>show_rva_window()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -171,7 +171,7 @@
    <sender>action_Search</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>showSearchWindow()</slot>
+   <slot>show_search_window()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -187,7 +187,7 @@
    <sender>action_Search_Next</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>searchNext()</slot>
+   <slot>search_next()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -203,7 +203,7 @@
    <sender>action_Quit</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>quitWindow()</slot>
+   <slot>quit_window()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -251,7 +251,7 @@
    <sender>action_Regions</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>showRegionsWindow()</slot>
+   <slot>show_regions_window()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -283,7 +283,7 @@
    <sender>actionAll_References</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>showReferencesWindow()</slot>
+   <slot>show_references_window()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -299,7 +299,7 @@
    <sender>actionRefresh_all_references</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>refreshReferences()</slot>
+   <slot>refresh_references()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -329,16 +329,16 @@
   </connection>
  </connections>
  <slots>
-  <slot>showRVAWindow()</slot>
-  <slot>showSearchWindow()</slot>
-  <slot>searchNext()</slot>
-  <slot>quitWindow()</slot>
+  <slot>show_rva_window()</slot>
+  <slot>show_search_window()</slot>
+  <slot>search_next()</slot>
+  <slot>quit_window()</slot>
   <slot>save()</slot>
   <slot>load()</slot>
-  <slot>showRegionsWindow()</slot>
+  <slot>show_regions_window()</slot>
   <slot>goto()</slot>
-  <slot>showReferencesWindow()</slot>
-  <slot>refreshReferences()</slot>
+  <slot>show_references_window()</slot>
+  <slot>refresh_references()</slot>
   <slot>open_dlg()</slot>
  </slots>
 </ui>

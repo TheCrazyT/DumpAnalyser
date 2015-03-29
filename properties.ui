@@ -35,7 +35,7 @@
    <sender>tvProps</sender>
    <signal>itemClicked(QTreeWidgetItem*,int)</signal>
    <receiver>Dialog</receiver>
-   <slot>itemClick()</slot>
+   <slot>item_click()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>200</x>

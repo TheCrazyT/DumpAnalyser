@@ -89,7 +89,7 @@
    <sender>btnSearchAll</sender>
    <signal>clicked()</signal>
    <receiver>Dialog</receiver>
-   <slot>searchAll()</slot>
+   <slot>search_all()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>190</x>
@@ -151,6 +151,6 @@
   </connection>
  </connections>
  <slots>
-  <slot>searchAll()</slot>
+  <slot>search_all()</slot>
  </slots>
 </ui>

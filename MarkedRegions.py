@@ -3,24 +3,51 @@ import Globals
 from   Globals import *
 from PyQt5 import QtCore, QtGui
 
-lastId = 0
+last_id = 0
+
+
+def get_col_row(addr):
+    width = Globals.hex_grid.width
+    col = addr % width
+    row = (addr - col) / width
+    return col, row
+
+
+def add_range(range, addr, size):
+    assert isinstance(range, QtCore.QItemSelection)
+    width = Globals.hex_grid.width
+    col1, row1 = get_col_row(addr)
+    col2, row2 = get_col_row(addr + size)
+    if row1 + 2 <= row2:
+        idx1 = Globals.hex_grid.model.createIndex(row1 + 1, 0)
+        idx2 = Globals.hex_grid.model.createIndex(row2 - 1, width)
+        sr = QtCore.QItemSelectionRange(idx1, idx2)
+        range.append(sr)
+    if row1 < row2:
+        idx1 = Globals.hex_grid.model.createIndex(row1, col1)
+        idx2 = Globals.hex_grid.model.createIndex(row1, width)
+        sr = QtCore.QItemSelectionRange(idx1, idx2)
+        range.append(sr)
+        idx1 = Globals.hex_grid.model.createIndex(row2, 0)
+        idx2 = Globals.hex_grid.model.createIndex(row2, col2)
+        sr = QtCore.QItemSelectionRange(idx1, idx2)
+        range.append(sr)
+
 
 class ReferenceList(list):
     def __init__(self):
-        self.range = QtCore.QItemSelectionRange()
+        self.range = QtCore.QItemSelection()
 
-    def __contains__(self,ref):
+
+    def __contains__(self, ref):
         addr = None
         if type(ref) is Reference:
             addr = ref.addr
         else:
             addr = ref
 
-        width = Globals.hexGrid.width
-
-        col = addr % width
-        row = (addr - col) / width
-        idx = self.model.createIndex(row,col)
+        col, row = get_col_row(addr)
+        idx = Globals.hex_grid.model.createIndex(row, col)
         return self.range.contains(idx)
 
     def __add__(self, ref):
@@ -30,127 +57,138 @@ class ReferenceList(list):
         else:
             addr = ref
 
-        width = Globals.hexGrid.width
+        size = 4
 
-        col1  = addr % width
-        row1  = (addr - col1) / width
-
-        col2  = addr % width
-        row2  = (addr - col1) / width
-
-        if row1+2<=row2:
-           idx1 = self.model.createIndex(row1+1,0)
-           idx2 = self.model.createIndex(row2-1,width)
-           sr   = QtCore.QItemSelectionRange(idx1,idx2)
-           self.range.append(sr)
-        if row1<row2:
-           idx1 = self.model.createIndex(row1,col1)
-           idx2 = self.model.createIndex(row1,width)
-           sr   = QtCore.QItemSelectionRange(idx1,idx2)
-           self.range.append(sr)
-           idx1 = self.model.createIndex(row2,0)
-           idx2 = self.model.createIndex(row2,col2)
-           sr   = QtCore.QItemSelectionRange(idx1,idx2)
-           self.range.append(sr)
+        add_range(self, range, addr, size)
         super.add(ref)
 
 
-def genNewId():
-    global lastId
-    lastId += 1
-    return lastId + 1
-
-class MarkedRegions():
+class RegionList(list):
     def __init__(self):
-        self.regionList = []
-        
-    def add(self,region):
-        self.regionList.append(region)
-        
-    def append(self,region):
-        self.regionList.append(region)
+        self.range = QtCore.QItemSelection()
 
-    def remove(self,region):
-        self.regionList.remove(region)
+    def __add__(self, region):
+        addr = region.start_pos
+        size = region.end_pos - region.start_pos
 
-    def findWithin(self,startPos,endPos):
-        dbg("findWithin %08x,%08x" % (startPos,endPos))
+        add_range(self.range, addr, size)
+        super.add(region)
+
+    def find_within(self, start_pos, end_pos):
+        sel = QtCore.QItemSelection()
+        add_range(sel, start_pos, end_pos - start_pos)
+        has_intersect = False
+        for r in sel:
+            for r2 in self.range:
+                if r2.intersects(r):
+                    has_intersect = True
+                    break
+        if has_intersect:
+            return
         result = []
-        for r in self.regionList:
-            if endPos       >= r.startPos and endPos   <= r.endPos:
+        for r in self:
+            if end_pos >= r.start_pos and end_pos <= r.end_pos:
                 result.append(r)
-            elif startPos   >= r.startPos and startPos <= r.endPos:
+            elif start_pos >= r.start_pos and start_pos <= r.end_pos:
                 result.append(r)
-            elif r.startPos > startPos  and r.endPos   < endPos:
+            elif r.start_pos > start_pos and r.end_pos < end_pos:
                 result.append(r)
         return result
 
+
+def gen_new_id():
+    global last_id
+    last_id += 1
+    return last_id + 1
+
+
+class MarkedRegions():
+    def __init__(self):
+        self.region_list = RegionList()
+
+    def add(self, region):
+        self.region_list.append(region)
+
+    def append(self, region):
+        self.region_list.append(region)
+
+    def remove(self, region):
+        self.region_list.remove(region)
+
+    def find_within(self, start_pos, end_pos):
+        dbg("findWithin %08x,%08x" % (start_pos, end_pos))
+        return self.region_list.find_within(start_pos, end_pos)
+
     def load(self):
-        global lastId
-        self.regionList = db.loadRegions()
-        allRefs         = []
-        for r in self.regionList:
-            if r.id>lastId:
-                lastId = r.id + 1
-            allRefs.extend(r.references)
-        dbg(allRefs)
-        Globals.hexGrid.allReferences = allRefs
-        
+        global last_id
+        self.region_list = db.load_regions()
+        all_refs = []
+        for r in self.region_list:
+            if r.id > last_id:
+                last_id = r.id + 1
+            all_refs.extend(r.references)
+        dbg(all_refs)
+        Globals.hex_grid.all_references = all_refs
+
     def save(self):
-        for r in self.regionList:
+        for r in self.region_list:
             r.save()
 
+
 class MarkedRegion():
-    def __init__(self,startPos,length,id=None,color="red",fullyScanned=False,pointersFullyScanned=False):
-        if id==None:
-            id = genNewId()
-        self.id           = id
-        self.startPos     = startPos
-        self.length       = length
-        self.endPos       = startPos + length
-        self.color        = color
-        self.properties   = []
-        self.pointers     = []
-        self.references   = ReferenceList()
-        self.fullyScanned         = fullyScanned
-        self.pointersFullyScanned = pointersFullyScanned
-        self.virtualPos           = None
+    def __init__(self, start_pos, length, id=None, color="red", fully_scanned=False, pointers_fully_scanned=False):
+        if id == None:
+            id = gen_new_id()
+        self.id = id
+        self.start_pos = start_pos
+        self.length = length
+        self.end_pos = start_pos + length
+        self.color = color
+        self.properties = []
+        self.pointers = []
+        self.references = ReferenceList()
+        self.fully_scanned = fully_scanned
+        self.pointers_fully_scanned = pointers_fully_scanned
+        self.virtual_pos = None
 
     def save(self):
-        db.saveRegion(self)
+        db.save_region(self)
 
-    def add_nullstring(self,pos):
+    def add_nullstring(self, pos):
         self.properties.append(NullString(pos))
 
-    def get_color(self,pos,char):
+    def get_color(self, pos, char):
         for p in self.properties:
-            c = p.get_color(pos,char)
+            c = p.get_color(pos, char)
             if c != None:
                 return c
-        if pos == self.startPos:
+        if pos == self.start_pos:
             return QtGui.QColor(0xFF9999)
-        if pos == self.endPos:
+        if pos == self.end_pos:
             return QtGui.QColor(0xFF6666)
         return QtGui.QColor(0xFF0000)
 
+
 class NullString():
-    def __init__(self,startPos):
-        self.startPos = startPos
-        self.endPos   = -1
-    def get_color(self,pos,char):
-        #dbg("NullString get_color %d %d| %d %d" % (pos,char,self.startPos,self.endPos))
-        if self.endPos == -1:
-            if pos>=self.startPos:
+    def __init__(self, start_pos):
+        self.start_pos = start_pos
+        self.end_pos = -1
+
+    def get_color(self, pos, char):
+        # dbg("NullString get_color %d %d| %d %d" % (pos,char,self.start_pos,self.end_pos))
+        if self.end_pos == -1:
+            if pos >= self.start_pos:
                 if char == 0:
-                    self.endPos = pos
+                    self.end_pos = pos
                 return QtGui.QColor(0x00FFFF)
         else:
-            if (pos>=self.startPos) and (pos<=self.endPos):
+            if (pos >= self.start_pos) and (pos <= self.end_pos):
                 return QtGui.QColor(0x00FFFF)
         return None
 
+
 class Reference():
-    def __init__(self,addr,fullyScanned=False):
-        self.addr           = addr
-        self.fullyScanned   = fullyScanned
-        self.guessedRegions = []
+    def __init__(self, addr, fully_scanned=False):
+        self.addr = addr
+        self.fully_scanned = fully_scanned
+        self.guessed_regions = []
