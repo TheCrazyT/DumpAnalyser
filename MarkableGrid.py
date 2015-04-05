@@ -167,8 +167,8 @@ class MarkableGrid(QtWidgets.QTableView):
         font.setStyleHint(QtGui.QFont.TypeWriter);
         self.setFont(font);
         self.regions = MarkedRegions()
-        self.allReferences = ReferenceList()
-        self.allGuessedRegions = []
+        self.all_references = ReferenceList()
+        self.all_guessed_regions = []
         self.viewRegions = []
         self.width = width
         self.height = height
@@ -250,32 +250,33 @@ class MarkableGrid(QtWidgets.QTableView):
 
     def calc_view_regions(self, start_pos, end_pos):
         dbg("calc_view_regions %08x,%08x" % (start_pos, end_pos))
-        regionsInView = self.regions.find_within(start_pos, end_pos)
-        regionEntryList = []
-        for r in regionsInView:
+        regions_in_view = self.regions.find_within(start_pos, end_pos)
+        region_entry_list = []
+        for r in regions_in_view:
             for y in range(0, self.height):
                 for x in range(0, self.width):
                     i = Globals.main_window.pos + y * self.width + x
                     if i >= r.start_pos and i <= r.end_pos:
-                        regionEntryList.append((
+                        region_entry_list.append((
                         MarkableCell(self, x, y), r.get_color(i, Globals.main_window.read_txt(y * self.width + x, 1))))
         for y in range(0, self.height):
             for x in range(0, self.width):
                 if Globals.main_window.action_References.isChecked():
                     i = Globals.main_window.pos + y * self.width + x
                     for j in range(0, 4):
-                        if ((i - j) in self.allReferences):
-                            regionEntryList.append((MarkableCell(self, x, y), QtGui.QColor(0x00FF00)))
-                        elif ((i - j) in self.allGuessedRegions):
-                            regionEntryList.append((MarkableCell(self, x, y), QtGui.QColor(0x2222FF)))
-            self.viewRegions.append(regionEntryList)
+                        if ((i - j) in self.all_references):
+                            region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x00FF00)))
+                        elif ((i - j) in self.all_guessed_regions):
+                            region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x2222FF)))
+            self.viewRegions.append(region_entry_list)
 
     def resize_region(self, region, newstart_pos, newend_pos):
         dbg("resize_region %08x %08x" % (newstart_pos, newend_pos))
         if newstart_pos != region.start_pos:
             for ref in region.references:
-                self.allReferences.remove(ref)
-            region.fully_scanned = False
+                self.all_references.remove(ref)
+            sref = Globals.r_searcher.get_ref(ref)
+            sref.set_fully_scanned(False)
         region.start_pos = newstart_pos
         region.end_pos = newend_pos
         region.references = []
@@ -375,7 +376,7 @@ class MarkableGrid(QtWidgets.QTableView):
     def delete_region(self, region):
         dbg("delete_region")
         for ref in region.references:
-            self.allReferences.remove(ref)
+            self.all_references.remove(ref)
         self.regions.remove(region)
 
     def erase(self):
@@ -443,7 +444,7 @@ class MarkableCell(QtWidgets.QWidget):
             start_pos = Globals.main_window.pos + self.y * Globals.hex_grid.width + self.x
             show_refs = False
             for i in range(0, 4):
-                if start_pos - i in Globals.hex_grid.allReferences:
+                if start_pos - i in Globals.hex_grid.all_references:
                     reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
                     show_refs = True
             r = Globals.hex_grid.regions.find_within(start_pos, start_pos)

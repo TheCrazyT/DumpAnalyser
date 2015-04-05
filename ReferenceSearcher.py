@@ -4,8 +4,41 @@ from PyQt5.QtCore import QMutex, QMutexLocker
 from struct import *
 from MarkedRegions import *
 import Globals
-from   Globals import *
+from Globals import *
 
+class ReferenceWrapper():
+    def __init__(self,object):
+        self.object = object
+        self.fully_scanned = False
+        self.pointers_fully_scanned = False
+        self.scan_started = None
+        self.scan_ended = None
+        self.virtual_pos = None
+        self.guessed_regions = []
+    def get_object(self):
+        return self.object
+    def set_fully_scanned(self,value):
+        self.fully_scanned = value
+    def get_fully_scanned(self):
+        return self.fully_scanned
+    def get_pointers_fully_scanned(self):
+        return self.pointers_fully_scanned
+    def set_pointers_fully_scanned(self,value):
+        self.pointers_fully_scanned = value
+    def get_scan_started(self):
+        return self.scan_started
+    def set_scan_started(self,value):
+        self.scan_started = value
+    def get_scan_ended(self):
+        return self.scan_ended
+    def set_scan_ended(self,value):
+        self.scan_ended = value
+    def get_virtual_pos(self):
+        return self.virtual_pos
+    def set_virtual_pos(self,value):
+        self.virtual_pos = value
+    def get_guessed_regions(self):
+        return self.guessed_regions
 
 class ReferenceSearcher(QtCore.QThread):
     def __init__(self, parent):
@@ -16,6 +49,7 @@ class ReferenceSearcher(QtCore.QThread):
         self.size = 0
         self.lock = QMutex()
         self.force_scan = False
+        self.ref_map = {}
         # TODO 64-Bit support
         self.search_data_size = 4
 
@@ -37,7 +71,8 @@ class ReferenceSearcher(QtCore.QThread):
                     if len(Globals.hex_grid.regions.region_list) > 0:
                         dbg("processing")
                         for r in Globals.hex_grid.regions.region_list:
-                            if not r.fully_scanned:
+                            ref = self.get_ref(r)
+                            if not ref.get_fully_scanned():
                                 search_regions.append(r)
                         if len(search_regions) > 0:
                             self.pos = 0
@@ -50,7 +85,8 @@ class ReferenceSearcher(QtCore.QThread):
                     search_regions = []
                     if len(Globals.hex_grid.regions.region_list) > 0:
                         for r in Globals.hex_grid.regions.region_list:
-                            if not r.pointers_fully_scanned:
+                            ref = self.get_ref(r)
+                            if not ref.get_pointers_fully_scanned():
                                 search_regions.append(r)
                         if len(search_regions) > 0:
                             self.pos = 0
@@ -61,7 +97,8 @@ class ReferenceSearcher(QtCore.QThread):
                     self.guess_regions(all_refs)
                     Globals.hex_grid.all_guessed_regions = []
                     for ref in Globals.hex_grid.all_references:
-                        Globals.hex_grid.all_guessed_regions.extend(ref.guessed_regions)
+                        sref = Globals.r_searcher.get_ref(ref)
+                        Globals.hex_grid.all_guessed_regions.extend(sref.get_guessed_regions())
                     if self.force_scan:
                         self.force_scan = False
                     else:
@@ -110,28 +147,32 @@ class ReferenceSearcher(QtCore.QThread):
         if vPos != None:
             dbg("calculated %08x to %08x" % (pos, vPos,))
             if type(data) is MarkedRegion:
-                region.virtual_pos = vPos
+                ref = self.get_ref(data)
+                ref.set_virtual_pos(vPos)
             return pack("<I", vPos)
         dbg("not calculated,using plain %08x" % (pos,))
         if type(data) is MarkedRegion:
-            region.virtual_pos = pos
+            ref = self.get_ref(data)
+            ref.set_virtual_pos(pos)
         return pack("<I", pos)
 
     def search_all(self, regions):
         dbg("rSearcher.searchNext")
         search_data_list = []
         for r in regions:
-            if r.fully_scanned:
+            ref = self.get_ref(r)
+            if ref.get_fully_scanned():
                 continue
             search_data = self.calculate_search_data_by_rva(r)
             search_data_list.append(search_data)
         while self.pos < self.size - self.search_data_size:
             self.file.seek(self.pos)
-            buf = self.file.read(self.file.cacheSize)
+            buf = self.file.read(self.file.cache_size)
             time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
             k = 0
             for r in regions:
-                if r.fully_scanned:
+                ref = self.get_ref(r)
+                if ref.get_fully_scanned():
                     continue
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)
                 try:
@@ -145,19 +186,22 @@ class ReferenceSearcher(QtCore.QThread):
                     pass
             self.pos += len(buf) - self.search_data_size
         for r in regions:
-            r.fully_scanned = True
+            ref = self.get_ref(r)
+            ref.set_fully_scanned(True)
 
     def guess_regions(self, references):
         dbg("guess_regions (%d references)" % len(references))
         doScan = False
         cnt = 0
         for r in references:
-            if not r.fully_scanned:
+            ref = self.get_ref(r)
+            if not ref.get_fully_scanned():
                 doScan = True
         if doScan:
             search_data_list = []
             for r in references:
-                if r.fully_scanned:
+                ref = self.get_ref(r)
+                if ref.get_fully_scanned():
                     continue
                 search_data = []
                 for i in range(0, 32):
@@ -166,11 +210,12 @@ class ReferenceSearcher(QtCore.QThread):
             while self.pos < self.size - self.search_data_size:
                 dbg("%08x/%08x" % (self.pos, self.size - self.search_data_size))
                 self.file.seek(self.pos)
-                buf = self.file.read(self.file.cacheSize)
+                buf = self.file.read(self.file.cache_size)
                 n = 0
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
                 for r in references:
-                    if r.fully_scanned:
+                    ref = self.get_ref(r)
+                    if ref.get_fully_scanned():
                         continue
 
                     search_data = search_data_list[n]
@@ -179,24 +224,38 @@ class ReferenceSearcher(QtCore.QThread):
                         time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)
                         try:
                             buf.index(s)
-                            if r.addr - i not in r.guessed_regions:
-                                r.guessed_regions.append(r.addr - i)
+                            if r.addr - i not in ref.get_guessed_regions():
+                                ref.get_guessed_regions().append(r.addr - i)
                                 cnt += 1
                                 break
                         except(ValueError):
                             pass
                 self.pos += len(buf) - self.search_data_size
             for r in references:
-                for gr in r.guessed_regions:
-                    dbg("appended guessedRegion %08x" % (gr))
-                r.fully_scanned = True
+                ref = self.get_ref(r)
+                for gr in ref.get_guessed_regions():
+                    dbg("appended guessed_region %08x" % (gr))
+                ref = self.get_ref(r)
+                ref.set_fully_scanned(True)
         else:
             dbg("doScan was false")
         dbg("end guessRegions (%d added)" % cnt)
 
+    def get_ref(self,o):
+        try:
+            return self.ref_map[o]
+        except(KeyError):
+            ref = ReferenceWrapper(o)
+            self.ref_map[o] = ref
+            return ref
+
+    def reset_ref_map(self):
+        self.ref_map = {}
+
     def invalidate_pointer_search(self, regions):
         for r in regions:
-            r.pointers_fully_scanned = False
+            ref = self.get_ref(r)
+            ref.set_pointers_fully_scanned(False)
 
     def search_all_pointers(self, regions, all_references):
         for r in regions:
@@ -205,4 +264,5 @@ class ReferenceSearcher(QtCore.QThread):
                 if (r.start_pos <= ref.addr) and (r.end_pos >= ref.addr):
                     if ref not in r.pointers:
                         r.pointers.append(ref)
-            r.pointers_fully_scanned = True
+            ref = self.get_ref(r)
+            ref.set_pointers_fully_scanned(True)

@@ -8,13 +8,13 @@ class ReferenceSearcherTest(unittest.TestCase):
     def testReferenceSearcher(self):
         Globals.r_searcher = ReferenceSearcher(None)
         regions = []
-        allReferences = ReferenceList()
+        all_references = ReferenceList()
 
-        allReferences.append(Reference(60))
+        all_references.append(Reference(60))
 
         r = MarkedRegion(50, 100)
         regions.append(r)
-        Globals.r_searcher.search_all_pointers(regions, allReferences)
+        Globals.r_searcher.search_all_pointers(regions, all_references)
 
         assert len(r.pointers) > 0, "PointerList of region is empty!"
 

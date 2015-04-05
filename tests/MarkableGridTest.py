@@ -69,7 +69,7 @@ class MarkableGridTest(unittest.TestCase):
         height = 32
         grid = MarkableGrid(Globals.main_window, width, height)
         reference = Reference(20)
-        grid.allReferences.append(reference)
+        grid.all_references.append(reference)
         grid.update()
 
     def testRegion(self):

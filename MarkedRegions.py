@@ -136,7 +136,7 @@ class MarkedRegions():
 
 
 class MarkedRegion():
-    def __init__(self, start_pos, length, id=None, color="red", fully_scanned=False, pointers_fully_scanned=False):
+    def __init__(self, start_pos, length, id=None, color="red"):
         if id == None:
             id = gen_new_id()
         self.id = id
@@ -147,9 +147,6 @@ class MarkedRegion():
         self.properties = []
         self.pointers = []
         self.references = ReferenceList()
-        self.fully_scanned = fully_scanned
-        self.pointers_fully_scanned = pointers_fully_scanned
-        self.virtual_pos = None
 
     def save(self):
         db.save_region(self)
@@ -188,7 +185,5 @@ class NullString():
 
 
 class Reference():
-    def __init__(self, addr, fully_scanned=False):
+    def __init__(self, addr):
         self.addr = addr
-        self.fully_scanned = fully_scanned
-        self.guessed_regions = []

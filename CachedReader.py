@@ -44,7 +44,7 @@ class CachedReader:
 
             self.file.seek(orgPos)
             self.file.locker.unlock()
-            #dbg("read %d bytes from %d bytes" % (len(self.cache),self.cacheSize))
+            #dbg("read %d bytes from %d bytes" % (len(self.cache),self.cache_size))
         result = self.get_from_cache(size)
         return result
 

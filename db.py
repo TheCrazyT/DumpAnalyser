@@ -46,6 +46,7 @@ def load_region_references(region_id):
     references = ReferenceList()
     cur.execute("SELECT pos FROM regions_ref WHERE regionId=? GROUP BY pos", (region_id,))
     rows = cur.fetchall()
+    dbg("loaded %d references for regionId %d" % (len(rows),region_id))
     for row in rows:
         references.append(Reference(row[0]))
     return references
@@ -53,11 +54,15 @@ def load_region_references(region_id):
 
 def load_regions():
     global cur
+    Globals.r_searcher.reset_ref_map()
     regions = RegionList()
     cur.execute("SELECT startPos,length,id,color,fullyScanned FROM regions")
     rows = cur.fetchall()
     for row in rows:
-        r = MarkedRegion(row[0], row[1], row[2], row[3], row[4])
+        r = MarkedRegion(row[0], row[1], row[2], row[3])
+        fully_scanned = row[4]
+        ref = Globals.r_searcher.get_ref(r)
+        ref.set_fully_scanned(fully_scanned)
         regions.append(r)
         r.references.extend(load_region_references(row[2]))
         r.properties.extend(load_region_properties(row[2]))
@@ -82,8 +87,9 @@ def save_region(region):
     global cur
     save_region_refs(region)
     save_region_properties(region)
+    ref = Globals.r_searcher.get_ref(region)
     cur.execute("INSERT INTO regions (id,startPos,length,color,fullyScanned) VALUES (?,?,?,?,?)",
-                (region.id, region.start_pos, region.length, region.color, region.fully_scanned))
+                (region.id, region.start_pos, region.length, region.color, ref.get_fully_scanned()))
 
 
 def create_rva_list_tbl():

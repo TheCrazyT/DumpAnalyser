@@ -36,9 +36,10 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             tli_ref = QtWidgets.QTreeWidgetItem()
             tli_ref.data = region.start_pos
             tli_ref.type = TYPE_REGION
-            if region.virtual_pos == None:
+            ref = Globals.r_searcher.get_ref(region)
+            if ref.get_virtual_pos() == None:
                 Globals.r_searcher.calculate_search_data_by_rva(region)
-            tli_ref.setText(0, "References of %08x (%08x)" % (region.start_pos, region.virtual_pos))
+            tli_ref.setText(0, "References of %08x (%08x)" % (region.start_pos, ref.get_virtual_pos()))
             for r in region.references:
                 tli = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_REFS
@@ -51,7 +52,7 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             tli_ref = QtWidgets.QTreeWidgetItem()
             tli_ref.data = region.start_pos
             tli_ref.type = TYPE_REGION
-            tli_ref.setText(0, "Pointers of %08x (%08x)" % (region.start_pos, region.virtual_pos))
+            tli_ref.setText(0, "Pointers of %08x (%08x)" % (region.start_pos, ref.get_virtual_pos()))
             for p in region.pointers:
                 tli = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_POINTER

@@ -52,10 +52,11 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     def refresh_references(self):
         self.statusBar().showMessage('Recalculating all references')
-        Globals.hex_grid.allReferences = []
+        Globals.hex_grid.all_references = []
         for r in Globals.hex_grid.regions.region_list:
             r.references = []
-            r.fully_scanned = False
+            ref = Globals.r_searcher.get_ref(r)
+            ref.set_fully_scanned(False)
         tmp_sbrr = Globals.SLEEP_BETWEEN_REGION_READ
         tmp_sbrs = Globals.SLEEP_BETWEEN_REGION_SCAN
         tmp_sbr = Globals.SLEEP_BETWEEN_REGIONS
@@ -64,8 +65,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         Globals.SLEEP_BETWEEN_REGIONS = 0
         Globals.r_searcher.forceScan = True
         time.sleep(11)
+        dbg("Lock started till ref-refresh finished.")
         with QMutexLocker(Globals.r_searcher.lock):
             time.sleep(1)
+        dbg("Lock stoppped.")
         Globals.SLEEP_BETWEEN_REGION_READ = tmp_sbrr
         Globals.SLEEP_BETWEEN_REGION_SCAN = tmp_sbrs
         Globals.SLEEP_BETWEEN_REGIONS = tmp_sbr
