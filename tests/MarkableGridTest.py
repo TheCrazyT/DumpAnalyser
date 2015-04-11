@@ -20,7 +20,6 @@ class ActionRefMock:
     def isChecked(self):
         return False
 
-
 class MainWindowMock:
     def __init__(self,size=500000000):
         self.size = size
@@ -68,6 +67,7 @@ class MarkableGridTest(unittest.TestCase):
         width = 32
         height = 32
         grid = MarkableGrid(Globals.main_window, width, height)
+        grid.update()
         reference = Reference(20)
         grid.all_references.append(reference)
         grid.update()
@@ -80,6 +80,7 @@ class MarkableGridTest(unittest.TestCase):
         width = 32
         height = 32
         grid = MarkableGrid(Globals.main_window, width, height)
+        grid.update()
         region = MarkedRegion(2,5)
         grid.regions.append(region)
         grid.update()

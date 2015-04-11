@@ -80,7 +80,7 @@ def save_region_properties(region):
 def save_region_refs(region):
     global cur
     for r in region.references:
-        cur.execute("INSERT INTO regions_ref (regionId,pos) VALUES (?,?)", (region.id, r.addr))
+        cur.execute("INSERT INTO regions_ref (regionId,pos) VALUES (?,?)", (region.id, r.address))
 
 
 def save_region(region):

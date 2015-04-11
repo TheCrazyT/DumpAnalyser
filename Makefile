@@ -1,4 +1,4 @@
-tests: PropertiesWindowTest MarkableGridTest ReferenceSearcherTest
+tests: PropertiesWindowTest MarkableGridTest ReferenceSearcherTest SearchWindowTest ReferenceListTest
 
 PropertiesWindowTest:
 	PYTHONPATH=$(shell pwd) python tests/PropertiesWindowTest.py
@@ -12,8 +12,11 @@ ReferenceSearcherTest:
 SearchWindowTest:
 	PYTHONPATH=$(shell pwd) python tests/SearchWindowTest.py
 
+ReferenceListTest:
+	PYTHONPATH=$(shell pwd) python tests/ReferenceListTest.py
+
 all:
 	-rm -R build/exe.*
 	python setupWin.py build
 
-.PHONY: all tests PropertiesWindowTest MarkableGridTest ReferenceSearcherTest SearchWindowTest
+.PHONY: all tests PropertiesWindowTest MarkableGridTest ReferenceSearcherTest SearchWindowTest ReferenceListTest

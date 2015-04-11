@@ -12,11 +12,14 @@ class ReferencesWindow(QtWidgets.QMainWindow, RegionsUI):
 
     def referenceSelected(self, widget):
         if widget != None:
-            Globals.main_window.set_pos(int(widget.text(), 16))
+            Globals.main_window.set_pos(widget.pos)
+            Globals.hex_grid.temp_select(widget.pos,4)
 
     def show(self):
         self.lstRefs.clear()
         for r in Globals.hex_grid.all_references:
-            self.lstRefs.addItem("%08x" % r.addr)
+            item = QtWidgets.QListWidgetItem("%08x" % r.address)
+            item.pos = r.address
+            self.lstRefs.addItem(item)
         super().show()
         self.activateWindow()

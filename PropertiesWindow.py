@@ -43,8 +43,8 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             for r in region.references:
                 tli = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_REFS
-                tli.data = r.addr
-                tli.setText(0, "%08x" % r.addr)
+                tli.data = r.address
+                tli.setText(0, "%08x" % r.address)
                 tli_ref.addChild(tli)
             self.tvProps.addTopLevelItem(tli_ref)
             tli_ref.setExpanded(True)
@@ -56,11 +56,11 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             for p in region.pointers:
                 tli = QtWidgets.QTreeWidgetItem()
                 tli.type = TYPE_POINTER
-                ref = Globals.r_searcher.calculate_pointer_pos_rva(p.addr)
+                ref = Globals.r_searcher.calculate_pointer_pos_rva(p.address)
                 if ref != None:
                     vpos = Globals.r_searcher.calculate_virt_by_rva(ref)
                     if vpos != None:
-                        tli.setText(0, "+%08x to %08x (%08x)" % (p.addr - region.start_pos, ref, vpos))
+                        tli.setText(0, "+%08x to %08x (%08x)" % (p.address - region.start_pos, ref, vpos))
                         tli.data = ref
                         tli_ref.addChild(tli)
             self.tvProps.addTopLevelItem(tli_ref)

@@ -205,7 +205,7 @@ class ReferenceSearcher(QtCore.QThread):
                     continue
                 search_data = []
                 for i in range(0, 32):
-                    search_data.append((i, self.calculate_search_data_by_rva(r.addr - i)))
+                    search_data.append((i, self.calculate_search_data_by_rva(r.address - i)))
                 search_data_list.append(search_data)
             while self.pos < self.size - self.search_data_size:
                 dbg("%08x/%08x" % (self.pos, self.size - self.search_data_size))
@@ -224,8 +224,8 @@ class ReferenceSearcher(QtCore.QThread):
                         time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)
                         try:
                             buf.index(s)
-                            if r.addr - i not in ref.get_guessed_regions():
-                                ref.get_guessed_regions().append(r.addr - i)
+                            if r.address - i not in ref.get_guessed_regions():
+                                ref.get_guessed_regions().append(r.address - i)
                                 cnt += 1
                                 break
                         except(ValueError):
@@ -261,7 +261,7 @@ class ReferenceSearcher(QtCore.QThread):
         for r in regions:
             for ref in all_references:
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)
-                if (r.start_pos <= ref.addr) and (r.end_pos >= ref.addr):
+                if (r.start_pos <= ref.address) and (r.end_pos >= ref.address):
                     if ref not in r.pointers:
                         r.pointers.append(ref)
             ref = self.get_ref(r)

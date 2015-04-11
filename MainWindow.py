@@ -52,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     def refresh_references(self):
         self.statusBar().showMessage('Recalculating all references')
-        Globals.hex_grid.all_references = []
+        Globals.hex_grid.all_references = ReferenceList()
         for r in Globals.hex_grid.regions.region_list:
             r.references = []
             ref = Globals.r_searcher.get_ref(r)

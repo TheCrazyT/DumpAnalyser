@@ -6,18 +6,18 @@ from PyQt5 import QtCore, QtGui
 last_id = 0
 
 
-def get_col_row(addr):
+def get_col_row(address):
     width = Globals.hex_grid.width
-    col = addr % width
-    row = (addr - col) / width
+    col = address % width
+    row = (address - col) / width
     return col, row
 
 
-def add_range(range, addr, size):
+def add_range(range, address, size):
     assert isinstance(range, QtCore.QItemSelection)
     width = Globals.hex_grid.width
-    col1, row1 = get_col_row(addr)
-    col2, row2 = get_col_row(addr + size)
+    col1, row1 = get_col_row(address)
+    col2, row2 = get_col_row(address + size)
     if row1 + 2 <= row2:
         idx1 = Globals.hex_grid.model.createIndex(row1 + 1, 0)
         idx2 = Globals.hex_grid.model.createIndex(row2 - 1, width)
@@ -32,60 +32,68 @@ def add_range(range, addr, size):
         idx2 = Globals.hex_grid.model.createIndex(row2, col2)
         sr = QtCore.QItemSelectionRange(idx1, idx2)
         range.append(sr)
+    if row1 == row2:
+        idx1 = Globals.hex_grid.model.createIndex(row1, col1)
+        idx2 = Globals.hex_grid.model.createIndex(row1, col2-1)
+        sr = QtCore.QItemSelectionRange(idx1, idx2)
+        range.append(sr)
 
 
 class ReferenceList(list):
     def __init__(self):
+        list.__init__(self)
         self.range = QtCore.QItemSelection()
 
-
     def __contains__(self, ref):
-        addr = None
+        address = None
         if type(ref) is Reference:
-            addr = ref.addr
+            address = ref.address
         else:
-            addr = ref
-
-        col, row = get_col_row(addr)
+            address = ref
+        col, row = get_col_row(address)
         idx = Globals.hex_grid.model.createIndex(row, col)
         return self.range.contains(idx)
 
-    def __add__(self, ref):
-        addr = None
+    def append(self, ref):
+        address = None
         if type(ref) is Reference:
-            addr = ref.addr
+            address = ref.address
         else:
-            addr = ref
-
+            address = ref
+        dbg("add reference %08x to reference list" % (address))
         size = 4
+        add_range(self.range, address, size)
+        super().append(ref)
 
-        add_range(self, range, addr, size)
-        super.add(ref)
-
+    def extend(self, iterable):
+        for i in iterable:
+            self.append(i)
 
 class RegionList(list):
     def __init__(self):
+        list.__init__(self)
         self.range = QtCore.QItemSelection()
 
-    def __add__(self, region):
-        addr = region.start_pos
+    def append(self, region):
+        address = region.start_pos
         size = region.end_pos - region.start_pos
-
-        add_range(self.range, addr, size)
-        super.add(region)
+        add_range(self.range, address, size)
+        super().append(region)
 
     def find_within(self, start_pos, end_pos):
-        sel = QtCore.QItemSelection()
-        add_range(sel, start_pos, end_pos - start_pos)
-        has_intersect = False
-        for r in sel:
-            for r2 in self.range:
-                if r2.intersects(r):
-                    has_intersect = True
-                    break
-        if has_intersect:
-            return
+        #TODO (still buggy)
+        #sel = QtCore.QItemSelection()
+        #add_range(sel, start_pos, end_pos - start_pos)
+        #has_intersect = False
+        #for r in sel:
+        #    for r2 in self.range:
+        #        if r2.intersects(r):
+        #            has_intersect = True
+        #            break
         result = []
+        #if not has_intersect:
+        #    dbg("found not intersection, no region between %08x and %08x" % (start_pos,end_pos))
+        #    return result
         for r in self:
             if end_pos >= r.start_pos and end_pos <= r.end_pos:
                 result.append(r)
@@ -122,7 +130,7 @@ class MarkedRegions():
     def load(self):
         global last_id
         self.region_list = db.load_regions()
-        all_refs = []
+        all_refs = ReferenceList()
         for r in self.region_list:
             if r.id > last_id:
                 last_id = r.id + 1
@@ -185,5 +193,5 @@ class NullString():
 
 
 class Reference():
-    def __init__(self, addr):
-        self.addr = addr
+    def __init__(self, address):
+        self.address = address

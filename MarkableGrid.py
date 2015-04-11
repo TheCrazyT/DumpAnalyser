@@ -169,7 +169,7 @@ class MarkableGrid(QtWidgets.QTableView):
         self.regions = MarkedRegions()
         self.all_references = ReferenceList()
         self.all_guessed_regions = []
-        self.viewRegions = []
+        self.view_regions = []
         self.width = width
         self.height = height
         self.text = None
@@ -188,11 +188,17 @@ class MarkableGrid(QtWidgets.QTableView):
             if self.text[x] != None:
                 if self.text[x][y] != None:
                     self.text[x][y].mousePressEvent(event)
+                else:
+                    dbg("text[%d][%d] is None" % (x,y))
+            else:
+                dbg("text[%d] is None" % x)
+        else:
+            dbg("text is None")
 
     def update_view(self):
         rect = self.viewport().rect()
         topRow = self.indexAt(rect.topLeft()).row()
-        self.viewRegions = []
+        self.view_regions = []
         self.text = []
         Globals.main_window.pos = topRow * Globals.hex_grid.width
         self.calc_view_regions(Globals.main_window.pos, Globals.main_window.pos + self.width * self.height)
@@ -201,7 +207,7 @@ class MarkableGrid(QtWidgets.QTableView):
             self.text.append(i)
             for y in range(0, self.height):
                 i.append(None)
-        for rl in self.viewRegions:
+        for rl in self.view_regions:
             for r in rl:
                 (item, color) = r
                 if color != None:
@@ -246,7 +252,7 @@ class MarkableGrid(QtWidgets.QTableView):
 
     def reset_regions(self):
         self.regions = MarkedRegions()
-        self.viewRegions = []
+        self.view_regions = []
 
     def calc_view_regions(self, start_pos, end_pos):
         dbg("calc_view_regions %08x,%08x" % (start_pos, end_pos))
@@ -259,16 +265,20 @@ class MarkableGrid(QtWidgets.QTableView):
                     if i >= r.start_pos and i <= r.end_pos:
                         region_entry_list.append((
                         MarkableCell(self, x, y), r.get_color(i, Globals.main_window.read_txt(y * self.width + x, 1))))
-        for y in range(0, self.height):
-            for x in range(0, self.width):
-                if Globals.main_window.action_References.isChecked():
+        if Globals.main_window.action_References.isChecked():
+            dbg("searching references in view starting at: %08x and ending at %08x(count of references: %d,referenceList:%s)" %  (Globals.main_window.pos,Globals.main_window.pos+self.width*self.height,len(self.all_references),type(self.all_references)))
+            for y in range(0, self.height):
+                for x in range(0, self.width):
                     i = Globals.main_window.pos + y * self.width + x
                     for j in range(0, 4):
                         if ((i - j) in self.all_references):
                             region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x00FF00)))
+                            dbg("found reference in view")
                         elif ((i - j) in self.all_guessed_regions):
                             region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x2222FF)))
-            self.viewRegions.append(region_entry_list)
+                            dbg("found guessed region in view")
+        dbg("region_entry_list : %d" % len(region_entry_list))
+        self.view_regions.append(region_entry_list)
 
     def resize_region(self, region, newstart_pos, newend_pos):
         dbg("resize_region %08x %08x" % (newstart_pos, newend_pos))
@@ -349,7 +359,7 @@ class MarkableGrid(QtWidgets.QTableView):
             self.merge_regions(result, start_pos, end_pos)
         elif action == 2:
             self.resize_region(result, start_pos, end_pos)
-        self.viewRegions = []
+        self.view_regions = []
         self.update_view()
         self.selection_model.clearSelection()
         Globals.r_searcher.invalidate_pointer_search(self.regions.region_list)
@@ -396,7 +406,7 @@ class MarkableGrid(QtWidgets.QTableView):
                 self.resize_region(region, end_pos + 1, region.end_pos)
             elif (start_pos > region.start_pos) and (end_pos >= region.end_pos):
                 self.resize_region(region, region.start_pos, start_pos - 1)
-        self.viewRegions = []
+        self.view_regions = []
         self.update_view()
         self.selection_model.clearSelection()
 
@@ -445,8 +455,13 @@ class MarkableCell(QtWidgets.QWidget):
             show_refs = False
             for i in range(0, 4):
                 if start_pos - i in Globals.hex_grid.all_references:
+                    dbg("%08x was in reference list." % (start_pos - i))
                     reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
                     show_refs = True
+                    dbg("reference %s." % reference)
+                    break
+                else:
+                    dbg("%08x not in reference list." % (start_pos - i))
             r = Globals.hex_grid.regions.find_within(start_pos, start_pos)
             Globals.properties_window.show_refs = show_refs
             Globals.properties_window.ref = reference
