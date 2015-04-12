@@ -6,7 +6,6 @@ from MarkedRegions import *
 conn = None
 cur = None
 
-
 def connect(filename):
     global conn, cur
     conn = sqlite3.connect(filename)
@@ -56,11 +55,25 @@ def load_regions():
     global cur
     Globals.r_searcher.reset_ref_map()
     regions = RegionList()
-    cur.execute("SELECT startPos,length,id,color,fullyScanned FROM regions")
+
+    columns = MarkedRegion.__db_columns__()[0]
+    column_list = ""
+    for column in columns:
+        column_list += "%s," % column
+    if(len(column_list)>0):
+        column_list = column_list[0:len(column_list)-1]
+
+    cur.execute("SELECT startPos,length,id,fullyScanned,%s FROM regions" % column_list)
     rows = cur.fetchall()
     for row in rows:
-        r = MarkedRegion(row[0], row[1], row[2], row[3])
-        fully_scanned = row[4]
+        r = MarkedRegion(row[0], row[1], row[2])
+
+        i = 4
+        for column in columns:
+            getattr(r, columns[column])(row[i])
+            i+=1
+
+        fully_scanned = row[3]
         ref = Globals.r_searcher.get_ref(r)
         ref.set_fully_scanned(fully_scanned)
         regions.append(r)
@@ -88,8 +101,18 @@ def save_region(region):
     save_region_refs(region)
     save_region_properties(region)
     ref = Globals.r_searcher.get_ref(region)
-    cur.execute("INSERT INTO regions (id,startPos,length,color,fullyScanned) VALUES (?,?,?,?,?)",
-                (region.id, region.start_pos, region.length, region.color, ref.get_fully_scanned()))
+    params = []
+    params.append(ref.get_fully_scanned())
+    columns = MarkedRegion.__db_columns__()[1]
+    column_list = ""
+    needed_params = ""
+    for column in columns:
+        needed_params += ",?"
+        column_list += ",%s" % column
+        params.append(getattr(region, columns[column])())
+
+    cur.execute("INSERT INTO regions (fullyScanned%s) VALUES (?%s)" % (column_list,needed_params),
+                params)
 
 
 def create_rva_list_tbl():
@@ -108,6 +131,7 @@ def create_regions_tbl():
          "startPos" INTEGER,\
          "length" INTEGER,\
          "color" VARCHAR,\
+         "name" VARCHAR,\
          "fullyScanned" INTEGER\
          )')
 

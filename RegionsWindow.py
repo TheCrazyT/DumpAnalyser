@@ -15,22 +15,24 @@ class RegionsWindow(QtWidgets.QMainWindow, RegionsUI):
         if widget != None:
             self.parent.set_pos(widget.pos)
 
-    def show(self):
+    def show(self,show_window=True):
         self.lstRegions.clear()
         for r in Globals.hex_grid.regions.region_list:
             name = None
-            for p in r.properties:
-                if type(p) is NullString:
-                    start_pos = p.start_pos
-                    end_pos = p.end_pos
-                    try:
-                        if end_pos == -1:
-                            buf = Globals.main_window.read_txt(start_pos, 1024)
-                            end_pos = start_pos + buf.index(".")
-                        name = Globals.main_window.read_txt(start_pos, end_pos - start_pos)
-                        break
-                    except:
-                        continue
+            name = r.get_name()
+            if name== None:
+                for p in r.properties:
+                    if type(p) is NullString:
+                        start_pos = p.start_pos
+                        end_pos = p.end_pos
+                        try:
+                            if end_pos == -1:
+                                buf = Globals.main_window.read_txt(start_pos, 1024)
+                                end_pos = start_pos + buf.index(".")
+                            name = Globals.main_window.read_txt(start_pos, end_pos - start_pos)
+                            break
+                        except:
+                            continue
             if name != None:
                 item = QtWidgets.QListWidgetItem("%08x [%s]" % (r.start_pos, name))
                 item.pos = r.start_pos
@@ -39,5 +41,7 @@ class RegionsWindow(QtWidgets.QMainWindow, RegionsUI):
                 item = QtWidgets.QListWidgetItem("%08x" % (r.start_pos))
                 item.pos = r.start_pos
                 self.lstRegions.addItem(item)
-        super().show()
-        self.activateWindow()
+
+        if show_window:
+            super().show()
+            self.activateWindow()

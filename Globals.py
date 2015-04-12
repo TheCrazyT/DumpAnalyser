@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QMutex, QMutexLocker
+from PyQt5 import QtWidgets
 
 r_searcher = None
 hex_grid = None
@@ -18,3 +19,7 @@ def dbg(s):
     if (DEBUG):
         with QMutexLocker(DBG_MUTEX):
             print(s)
+
+def input(widget,txt,label):
+    dialog = QtWidgets.QInputDialog()
+    return dialog.getText(widget, txt, label, QtWidgets.QLineEdit.Normal, "")

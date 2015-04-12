@@ -1,10 +1,12 @@
 import sys
 import os
 import unittest
+from PyQt5.uic.Compiler.qtproxies import QtWidgets
 from PropertiesWindow import *
 from MarkedRegions import *
 from MarkableGrid import *
 from ReferenceSearcher import *
+from Globals import dbg
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 
@@ -25,21 +27,25 @@ class MainWindowMock:
         self.size = size
         self.file_size = size
         self.rva_list = []
+        self.pos = 0
         self.action_References = ActionRefMock()
 
-    def readHex(self, pos):
+    def read_hex(self, pos):
         return "00"
 
-    def readTxt(self, pos, l):
+    def read_txt(self, pos, l):
         return "?" * l
 
+class ReferenceSearcherMock:
+    def invalidate_pointer_search(self,regions):
+        pass
 
 class ToolMenuMock:
     def enableRegion(self):
-        print("enableRegion")
+        dbg("enableRegion")
 
     def enableRegionButtons(self):
-        print("enableRegionButtons")
+        dbg("enableRegionButtons")
 
 
 def check(cells, grid, width):
@@ -53,98 +59,138 @@ def check(cells, grid, width):
             cellCnt += 1
             cellsChecked.append((i.column(), i.row()))
     if cellCnt != len(cells):
-        print("cellsChecked: %s" % cellsChecked)
+        dbg("cellsChecked: %s" % cellsChecked)
         raise Exception("Not all needed cells selected! (%d != %d)" % (cellCnt, len(cells)))
 
 
 class MarkableGridTest(unittest.TestCase):
-
-    def testReferences(self):
-        app = QtWidgets.QApplication(sys.argv)
+    def setUp(self):
+        self.app = QtWidgets.QApplication(sys.argv)
         Globals.main_window = MainWindowMock(200)
         Globals.tool_menu = ToolMenuMock()
         Globals.DEBUG = True
-        width = 32
-        height = 32
-        grid = MarkableGrid(Globals.main_window, width, height)
+        Globals.r_searcher = ReferenceSearcherMock()
+        self.width = 32
+        self.height = 32
+
+    def testReferences(self):
+        grid = MarkableGrid(Globals.main_window, self.width, self.height)
         grid.update()
         reference = Reference(20)
         grid.all_references.append(reference)
         grid.update()
 
     def testRegion(self):
-        app = QtWidgets.QApplication(sys.argv)
-        Globals.main_window = MainWindowMock(200)
-        Globals.tool_menu = ToolMenuMock()
-        Globals.DEBUG = True
-        width = 32
-        height = 32
-        grid = MarkableGrid(Globals.main_window, width, height)
+        grid = MarkableGrid(Globals.main_window, self.width, self.height)
         grid.update()
         region = MarkedRegion(2,5)
         grid.regions.append(region)
         grid.update()
 
     def testGrid(self):
-        app = QtWidgets.QApplication(sys.argv)
-        Globals.main_window = MainWindowMock()
-        Globals.tool_menu = ToolMenuMock()
-        Globals.DEBUG = True
-        width = 32
-        height = 32
-        grid = MarkableGrid(Globals.main_window, width, height)
+        Globals.main_window = MainWindowMock(442609052+100)
+        grid = MarkableGrid(Globals.main_window, self.width, self.height)
         #grid.show()
         grid.update()
 
         cells = SelectedCells()
-        cells.append((width, 0))
-        grid.temp_select(width - 1, 1)
+        cells.append((self.width, 0))
+        grid.temp_select(self.width - 1, 1)
 
-        print("Check 1")
-        check(cells, grid,width )
+        dbg("Check 1")
+        check(cells, grid,self.width )
 
         cells = SelectedCells()
-        cells.append((width, 0))
+        cells.append((self.width, 0))
         cells.append((1, 1))
         cells.append((0, 1))
-        grid.temp_select(width - 1, 2)
+        grid.temp_select(self.width - 1, 2)
 
-        print("Check 2")
-        check(cells, grid, width)
+        dbg("Check 2")
+        check(cells, grid, self.width)
 
         cells = SelectedCells()
-        grid.temp_select(8 * width + 12, width)
-        for i in range(8 * width + 12, 8 * width + 12 + width):
-            x = i % width
-            y = int((i - x) / width)
+        grid.temp_select(8 * self.width + 12, self.width)
+        for i in range(8 * self.width + 12, 8 * self.width + 12 + self.width):
+            x = i % self.width
+            y = int((i - x) / self.width)
             x += 1
             cells.append((x, y))
-            print("select %d,%d" % (x, y))
+            dbg("select %d,%d" % (x, y))
             if x == 1:
                 if (0, y) not in cells:
                     cells.append((0, y))
-                    print("select %d,%d" % (0, y))
+                    dbg("select %d,%d" % (0, y))
 
         print("Check 3")
-        check(cells, grid, width)
+        check(cells, grid, self.width)
 
         cells = SelectedCells()
         grid.temp_select(442609052, 442609066 - 442609052 + 1)
         for i in range(442609052, 442609067):
-            x = i % width
-            y = int((i - x) / width)
+            x = i % self.width
+            y = int((i - x) / self.width)
             x += 1
             cells.append((x, y))
-            print("select %d,%d" % (x, y))
+            dbg("select %d,%d" % (x, y))
             if x == 1:
                 if (0, y) not in cells:
                     cells.append((0, y))
-                    print("select %d,%d" % (0, y))
+                    dbg("select %d,%d" % (0, y))
 
         idx = grid.model.index(cells[0][1], 0, QtCore.QModelIndex())
         grid.scrollTo(idx)
-        print("Check 4")
-        check(cells, grid, width)
+        dbg("Check 4")
+        check(cells, grid, self.width)
+
+        result = grid.detect_region_action(40,50)
+        self.assertEqual(result[0],MarkableGrid.NEW_REGION)
+        grid.temp_select(40,10)
+        grid.store_region()
+        result = grid.detect_region_action(30,50)
+        self.assertEqual(result[0],MarkableGrid.RESIZE_REGION)
+
+        for i in range(40,49):
+            r, reference, show_refs = grid.find_region_at(i)
+            self.assertIsInstance(r,list)
+            self.assertEqual(len(r),1)
+            self.assertEqual(r[0].start_pos ,40)
+            self.assertEqual(r[0].end_pos ,49)
+
+        r, reference, show_refs = grid.find_region_at(50)
+        self.assertIsInstance(r,list)
+        self.assertEqual(len(r),0)
+
+        r, reference, show_refs = grid.find_region_at(39)
+        self.assertIsInstance(r,list)
+        self.assertEqual(len(r),0)
+
+        grid.all_references.append(5)
+        idx = grid.model.index(0, 0, QtCore.QModelIndex())
+        grid.scrollTo(idx)
+        grid.update_view()
+        assert len(grid.view_regions)!=0
+        dbg("Pos: %d" % Globals.main_window.pos)
+
+        ref_green = []
+        ref_green.append((0,5))
+        ref_green.append((0,6))
+        ref_green.append((0,7))
+        ref_green.append((0,8))
+        for rl in grid.view_regions:
+            assert len(rl)!=0
+            for r in rl:
+                (item, color) = r
+                if (item.y,item.x) in ref_green:
+                    self.assertIsInstance(color,QtGui.QColor)
+                    self.assertEqual(color.green(),0xFF)
+                    self.assertEqual(color.red(),0)
+                    self.assertEqual(color.blue(),0)
+                else:
+                    self.assertIsInstance(color,QtGui.QColor)
+                    assert not((color.red() == 0)and(color.green() == 0xFF)and(color.blue() == 0))
+
+
 
 if __name__ == "__main__":
     unittest.main()

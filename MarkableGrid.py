@@ -3,7 +3,6 @@ from MarkedRegions import *
 import Globals
 from   Globals import *
 
-
 class CustomSelection(QtCore.QItemSelection):
     def __init__(self, first_idx, last_idx):
         QtCore.QItemSelection.__init__(self, first_idx, last_idx)
@@ -158,6 +157,8 @@ class MyTableModel(QtCore.QAbstractTableModel):
 
 
 class MarkableGrid(QtWidgets.QTableView):
+    (NEW_REGION, MERGE_REGIONS, RESIZE_REGION) = range(0, 3)
+
     def __init__(self, parent, width, height):
         Globals.hex_grid = self
         QtWidgets.QTableView.__init__(self)
@@ -316,17 +317,16 @@ class MarkableGrid(QtWidgets.QTableView):
 
 
     def detect_region_action(self, start_pos, end_pos):
-        (NEW_REGION, MERGE_REGIONS, RESIZE_REGION) = range(0, 3)
         regions = self.regions.find_within(start_pos, end_pos)
         if (len(regions) == 0):
             dbg("NEW_REGION")
-            return (NEW_REGION, None)
+            return (MarkableGrid.NEW_REGION, None)
         elif (len(regions) > 1):
             dbg("MERGE_REGION")
-            return (MERGE_REGIONS, regions)
+            return (MarkableGrid.MERGE_REGIONS, regions)
         elif (len(regions) == 1):
             dbg("RESIZE_REGION")
-            return (RESIZE_REGION, regions[0])
+            return (MarkableGrid.RESIZE_REGION, regions[0])
 
     def get_start_end_sel(self):
         x2 = None
@@ -434,6 +434,20 @@ class MarkableGrid(QtWidgets.QTableView):
         self.selection_model.clearSelection()
         self.selection_model.select(selected_items, QtCore.QItemSelectionModel.Select)
 
+    def find_region_at(self, start_pos):
+        reference = None
+        show_refs = False
+        for i in range(0, 4):
+            if start_pos - i in self.all_references:
+                dbg("%08x was in reference list." % (start_pos - i))
+                reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
+                show_refs = True
+                dbg("reference %s." % reference)
+                break
+            else:
+                dbg("%08x not in reference list." % (start_pos - i))
+        r = self.regions.find_region_containing(start_pos, start_pos)
+        return r, reference, show_refs
 
 class MarkableCell(QtWidgets.QWidget):
     def __init__(self, parent, x, y):
@@ -450,19 +464,8 @@ class MarkableCell(QtWidgets.QWidget):
     def mousePressEvent(self, event):
         dbg("mousePressEvent")
         if (event.button() == QtCore.Qt.RightButton):
-            reference = None
             start_pos = Globals.main_window.pos + self.y * Globals.hex_grid.width + self.x
-            show_refs = False
-            for i in range(0, 4):
-                if start_pos - i in Globals.hex_grid.all_references:
-                    dbg("%08x was in reference list." % (start_pos - i))
-                    reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
-                    show_refs = True
-                    dbg("reference %s." % reference)
-                    break
-                else:
-                    dbg("%08x not in reference list." % (start_pos - i))
-            r = Globals.hex_grid.regions.find_within(start_pos, start_pos)
+            r, reference, show_refs = Globals.hex_grid.find_region_at(start_pos)
             Globals.properties_window.show_refs = show_refs
             Globals.properties_window.ref = reference
             if len(r) > 0:

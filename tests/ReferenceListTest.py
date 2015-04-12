@@ -17,19 +17,20 @@ class ReferenceListTest(unittest.TestCase):
     def testReferenceList(self):
         Globals.DEBUG = True
         Globals.hex_grid = MarkableGridMock()
-        rlist = ReferenceList()
+        reference_list = ReferenceList()
         r = Reference(0x123456)
-        rlist.append(r)
-        dbg("Reference list count:%d" % len(rlist))
-        for r in rlist:
+        reference_list.append(r)
+        dbg("Reference list count:%d" % len(reference_list))
+        for r in reference_list:
             dbg("Reference:%s" % r)
-        assert(0x123456 in rlist)
-        assert(0x123457 in rlist)
-        assert(0x123458 in rlist)
-        assert(0x123459 in rlist)
-        assert(not(0x12345A in rlist))
-        assert(not(0x12345B in rlist))
-        assert(not(0x12345C in rlist))
+        assert(not(0x123455 in reference_list))
+        assert(0x123456 in reference_list)
+        assert(0x123457 in reference_list)
+        assert(0x123458 in reference_list)
+        assert(0x123459 in reference_list)
+        assert(not(0x12345A in reference_list))
+        assert(not(0x12345B in reference_list))
+        assert(not(0x12345C in reference_list))
 
 if __name__ == "__main__":
     unittest.main()

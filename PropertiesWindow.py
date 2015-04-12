@@ -1,8 +1,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import Globals
-from   Globals import *
+from MarkedRegions import MarkedRegion
 
-(TYPE_REF, TYPE_REFS, TYPE_POINTER, TYPE_REGION) = range(0, 4)
+(TYPE_REF, TYPE_REFS, TYPE_POINTER, TYPE_REGION,TYPE_NAME) = range(0, 5)
 PropertiesUI = uic.loadUiType("properties.ui")[0]
 
 
@@ -15,12 +15,13 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
         self.ref = 0
 
     def goto_ref(self, pos, ptr_size):
-        dbg("gotoRef")
+        Globals.dbg("gotoRef")
         if (self.parent != None):
             Globals.main_window.set_pos(pos)
             Globals.hex_grid.temp_select(pos, ptr_size)
 
     def item_click(self, item):
+        assert isinstance(item,QtWidgets.QTreeWidgetItem)
         if item.type == TYPE_REGION:
             Globals.main_window.set_pos(item.data)
         if item.type == TYPE_REFS:
@@ -29,10 +30,17 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             Globals.main_window.set_pos(item.data)
         if item.type == TYPE_POINTER:
             Globals.main_window.set_pos(item.data)
+        if item.type == TYPE_NAME:
+            name, ok = Globals.input(self, "Enter a name", "Name:")
+            if ok:
+                assert isinstance(item.data,MarkedRegion)
+                item.data.set_name(name)
+                item.setText(0,"Name: %s" % name)
 
     def show(self, region,show_window=True):
         self.tvProps.clear()
         if region != None:
+            assert isinstance(region,MarkedRegion)
             tli_ref = QtWidgets.QTreeWidgetItem()
             tli_ref.data = region.start_pos
             tli_ref.type = TYPE_REGION
@@ -64,6 +72,17 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
                         tli.data = ref
                         tli_ref.addChild(tli)
             self.tvProps.addTopLevelItem(tli_ref)
+
+            tli_ref = QtWidgets.QTreeWidgetItem()
+            tli_ref.data = region
+            tli_ref.type = TYPE_NAME
+            name = region.get_name()
+            if name == None:
+                name = "[None]"
+            tli_ref.setText(0, "Name: %s" % name)
+            self.tvProps.addTopLevelItem(tli_ref)
+
+
             tli_ref.setExpanded(True)
 
         if self.show_refs:

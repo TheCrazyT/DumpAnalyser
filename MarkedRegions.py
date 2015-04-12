@@ -1,6 +1,6 @@
 import db
 import Globals
-from   Globals import *
+from Globals import *
 from PyQt5 import QtCore, QtGui
 
 last_id = 0
@@ -80,26 +80,36 @@ class RegionList(list):
         add_range(self.range, address, size)
         super().append(region)
 
-    def find_within(self, start_pos, end_pos):
+    def find_region_containing(self,start_pos,end_pos):
         #TODO (still buggy)
-        #sel = QtCore.QItemSelection()
-        #add_range(sel, start_pos, end_pos - start_pos)
-        #has_intersect = False
-        #for r in sel:
-        #    for r2 in self.range:
-        #        if r2.intersects(r):
-        #            has_intersect = True
-        #            break
+        sel = QtCore.QItemSelection()
+        add_range(sel, start_pos, end_pos - start_pos + 1)
+        has_intersect = False
+        for r in sel:
+            for r2 in self.range:
+                if r2.intersects(r):
+                    has_intersect = True
+                    break
+            if has_intersect:
+                break
         result = []
-        #if not has_intersect:
-        #    dbg("found not intersection, no region between %08x and %08x" % (start_pos,end_pos))
-        #    return result
+        if has_intersect:
+            for r in self:
+                if end_pos >= r.start_pos and end_pos <= r.end_pos:
+                    result.append(r)
+                elif start_pos >= r.start_pos and start_pos <= r.end_pos:
+                    result.append(r)
+                elif r.start_pos > start_pos and r.end_pos < end_pos:
+                    result.append(r)
+            assert len(result)>0,"no region found although we had an intersect."
+        return result
+
+    def find_within(self, start_pos, end_pos):
+        result = []
         for r in self:
-            if end_pos >= r.start_pos and end_pos <= r.end_pos:
+            if r.start_pos>=start_pos and r.start_pos<=end_pos:
                 result.append(r)
-            elif start_pos >= r.start_pos and start_pos <= r.end_pos:
-                result.append(r)
-            elif r.start_pos > start_pos and r.end_pos < end_pos:
+            elif r.end_pos>=start_pos and r.end_pos<=end_pos:
                 result.append(r)
         return result
 
@@ -123,8 +133,12 @@ class MarkedRegions():
     def remove(self, region):
         self.region_list.remove(region)
 
+    def find_region_containing(self,start_pos, end_pos):
+        dbg("find_region_containing %08x,%08x" % (start_pos, end_pos))
+        return self.region_list.find_region_containing(start_pos, end_pos)
+
     def find_within(self, start_pos, end_pos):
-        dbg("findWithin %08x,%08x" % (start_pos, end_pos))
+        dbg("find_within %08x,%08x" % (start_pos, end_pos))
         return self.region_list.find_within(start_pos, end_pos)
 
     def load(self):
@@ -144,17 +158,55 @@ class MarkedRegions():
 
 
 class MarkedRegion():
-    def __init__(self, start_pos, length, id=None, color="red"):
+    def __init__(self, start_pos, length, id=None):
         if id == None:
             id = gen_new_id()
         self.id = id
         self.start_pos = start_pos
         self.length = length
         self.end_pos = start_pos + length
-        self.color = color
         self.properties = []
         self.pointers = []
         self.references = ReferenceList()
+        self.name = None
+        self.color = None
+
+    @staticmethod
+    def __db_columns__():
+        setters = {}
+        getters = {}
+
+        setters["color"] = "set_color"
+        setters["name"] = "set_name"
+
+        getters["color"] = "get_color_value"
+        getters["id"] = "get_id"
+        getters["startPos"] = "get_start_pos"
+        getters["length"] = "get_length"
+        getters["name"] = "get_name"
+
+        return (setters,getters)
+
+    def get_id(self):
+        return self.id
+
+    def get_color_value(self):
+        return self.color
+
+    def get_start_pos(self):
+        return self.start_pos
+
+    def get_length(self):
+        return self.length
+
+    def get_name(self):
+        return self.name
+
+    def set_color(self,value):
+        self.color = value
+
+    def set_name(self,value):
+        self.name = value
 
     def save(self):
         db.save_region(self)
