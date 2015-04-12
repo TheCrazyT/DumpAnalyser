@@ -5,6 +5,7 @@ from MarkedRegions import *
 from ReferenceSearcher import *
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import unittest
+import struct
 from PyQt5.QtCore import *
 
 class ModelMock(QAbstractTableModel):
@@ -13,10 +14,12 @@ class ModelMock(QAbstractTableModel):
 
 class MainWindowMock:
     def __init__(self):
-        self.rva_list = []
+        self.rva_list = [(0,0,1000)]
 
-    def readPointer(self):
-        return 0x432
+    def read_pointer(self,pos):
+        assert pos == 0x68
+        dbg("read_pointer %08x" % pos)
+        return struct.pack("I",0x83)
 
 class MarkableGridMock:
     def __init__(self):
@@ -37,9 +40,12 @@ class PropertiesWindowTest(unittest.TestCase):
         Globals.input = mockedInput
 
     def testPropertiesWindow(self):
-        region = MarkedRegion(100, 100)
+        region = MarkedRegion(0x64, 100)
         region.set_name("Blubb")
         region.references.append(Reference(0x123456))
+        region.pointers.append(Reference(0x68))
+        self.properties_window.show_refs = True
+        self.properties_window.ref = 0x68
         self.properties_window.show(region,False)
         assert isinstance(self.properties_window.tvProps,QtWidgets.QTreeWidget)
 
@@ -47,10 +53,19 @@ class PropertiesWindowTest(unittest.TestCase):
         lst_texts.append("References of 00000064 (00000064)")
         lst_texts.append("Pointers of 00000064 (00000064)")
         lst_texts.append("Name: Blubb")
+        lst_texts.append("Selected reference leads to 00000068 (00000068)")
 
         for i in range(0,len(lst_texts)):
             tli = self.properties_window.tvProps.topLevelItem(i)
             assert isinstance(tli,QtWidgets.QTreeWidgetItem)
+            if i == 0:
+                child = tli.child(0)
+                assert isinstance(child,QtWidgets.QTreeWidgetItem)
+                self.assertEqual(child.text(0),"00123456")
+            if i == 1:
+                child = tli.child(0)
+                assert isinstance(child,QtWidgets.QTreeWidgetItem)
+                self.assertEqual(child.text(0),"+00000004 to 00000083 (00000083)")
             self.assertEqual(tli.text(0),lst_texts[i])
 
         tli = self.properties_window.tvProps.topLevelItem(2)

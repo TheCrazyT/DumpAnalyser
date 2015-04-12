@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import Globals
+from Globals import dbg
 from MarkedRegions import MarkedRegion
 
 (TYPE_REF, TYPE_REFS, TYPE_POINTER, TYPE_REGION,TYPE_NAME) = range(0, 5)
@@ -15,7 +16,7 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
         self.ref = 0
 
     def goto_ref(self, pos, ptr_size):
-        Globals.dbg("gotoRef")
+        dbg("gotoRef")
         if (self.parent != None):
             Globals.main_window.set_pos(pos)
             Globals.hex_grid.temp_select(pos, ptr_size)
@@ -71,6 +72,10 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
                         tli.setText(0, "+%08x to %08x (%08x)" % (p.address - region.start_pos, ref, vpos))
                         tli.data = ref
                         tli_ref.addChild(tli)
+                    else:
+                        dbg("vpos was None")
+                else:
+                    dbg("ref was None")
             self.tvProps.addTopLevelItem(tli_ref)
 
             tli_ref = QtWidgets.QTreeWidgetItem()

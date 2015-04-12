@@ -15,6 +15,8 @@ SLEEP_BETWEEN_REGION_SCAN = 0.1
 SLEEP_BETWEEN_REGION_READ = 1
 DBG_MUTEX = QMutex()
 
+pointer_size = 4
+
 def dbg(s):
     if (DEBUG):
         with QMutexLocker(DBG_MUTEX):

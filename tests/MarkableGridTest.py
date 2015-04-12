@@ -20,7 +20,7 @@ class SelectedCells(list):
 
 class ActionRefMock:
     def isChecked(self):
-        return False
+        return True
 
 class MainWindowMock:
     def __init__(self,size=500000000):
@@ -165,7 +165,7 @@ class MarkableGridTest(unittest.TestCase):
         self.assertIsInstance(r,list)
         self.assertEqual(len(r),0)
 
-        grid.all_references.append(5)
+        grid.all_references.append(64)
         idx = grid.model.index(0, 0, QtCore.QModelIndex())
         grid.scrollTo(idx)
         grid.update_view()
@@ -173,22 +173,24 @@ class MarkableGridTest(unittest.TestCase):
         dbg("Pos: %d" % Globals.main_window.pos)
 
         ref_green = []
-        ref_green.append((0,5))
-        ref_green.append((0,6))
-        ref_green.append((0,7))
-        ref_green.append((0,8))
+        ref_green.append((0,2))
+        ref_green.append((1,2))
+        ref_green.append((2,2))
+        ref_green.append((3,2))
         for rl in grid.view_regions:
             assert len(rl)!=0
+            found = False
             for r in rl:
                 (item, color) = r
-                if (item.y,item.x) in ref_green:
-                    self.assertIsInstance(color,QtGui.QColor)
+                self.assertIsInstance(color,QtGui.QColor)
+                if (item.x,item.y) in ref_green:
                     self.assertEqual(color.green(),0xFF)
                     self.assertEqual(color.red(),0)
                     self.assertEqual(color.blue(),0)
+                    found = True
                 else:
-                    self.assertIsInstance(color,QtGui.QColor)
-                    assert not((color.red() == 0)and(color.green() == 0xFF)and(color.blue() == 0))
+                    assert not((color.red() == 0)and(color.green() == 0xFF)and(color.blue() == 0)),"invalid colored cell at %d,%d (%02x,%02x,%02x)" % (item.x,item.y,color.red(),color.green(),color.blue())
+            assert found,"Reference was not found"
 
 
 

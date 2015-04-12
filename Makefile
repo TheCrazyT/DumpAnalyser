@@ -24,6 +24,9 @@ dbTest:
 RegionsWindowTest:
 	PYTHONPATH=$(shell pwd) python tests/RegionsWindowTest.py
 
+VersionCompatibilityTest:
+	PYTHONPATH=$(shell pwd) python tests/VersionCompatibilityTest.py
+
 all:
 	-rm -R build/exe.*
 	python setupWin.py build

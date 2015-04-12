@@ -51,7 +51,7 @@ class ReferenceSearcher(QtCore.QThread):
         self.force_scan = False
         self.ref_map = {}
         # TODO 64-Bit support
-        self.search_data_size = 4
+        self.search_data_size = Globals.pointer_size
 
     def __del__(self):
         self.wait()
@@ -107,7 +107,7 @@ class ReferenceSearcher(QtCore.QThread):
         dbg("stopped")
 
     def calculate_pointer_pos_rva(self, pos):
-        dbg("calculatePointerPosRVA(%08x)" % pos)
+        dbg("calculate_pointer_pos_rva(%08x)" % pos)
         i = []
         buf = Globals.main_window.read_pointer(pos)
         i.append(buf[3])
@@ -127,6 +127,7 @@ class ReferenceSearcher(QtCore.QThread):
                 dbg("calculate_rva_by_virt(%08x) returned %08x" % (v_pos, pos))
                 return pos
         dbg("calculate_rva_by_virt: nothing found for %08x" % (v_pos,))
+        return None
 
     def calculate_virt_by_rva(self, pos):
         for (rva, vaddr, size) in Globals.main_window.rva_list:

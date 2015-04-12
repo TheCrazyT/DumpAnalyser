@@ -271,13 +271,19 @@ class MarkableGrid(QtWidgets.QTableView):
             for y in range(0, self.height):
                 for x in range(0, self.width):
                     i = Globals.main_window.pos + y * self.width + x
-                    for j in range(0, 4):
-                        if ((i - j) in self.all_references):
-                            region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x00FF00)))
-                            dbg("found reference in view")
-                        elif ((i - j) in self.all_guessed_regions):
-                            region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x2222FF)))
-                            dbg("found guessed region in view")
+                    found_ref = False
+                    found_guess = False
+                    if (i  in self.all_references):
+                        dbg("%08x" % i)
+                        region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x00FF00)))
+                        found_ref = True
+                    elif (i  in self.all_guessed_regions):
+                        region_entry_list.append((MarkableCell(self, x, y), QtGui.QColor(0x2222FF)))
+                        found_guess = True
+                    if found_guess:
+                        dbg("found guessed region in view ,coloring cell at %d,%d" % (x,y))
+                    if found_ref:
+                        dbg("found reference in view ,coloring cell at %d,%d" % (x,y))
         dbg("region_entry_list : %d" % len(region_entry_list))
         self.view_regions.append(region_entry_list)
 
@@ -437,15 +443,19 @@ class MarkableGrid(QtWidgets.QTableView):
     def find_region_at(self, start_pos):
         reference = None
         show_refs = False
-        for i in range(0, 4):
-            if start_pos - i in self.all_references:
-                dbg("%08x was in reference list." % (start_pos - i))
-                reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
-                show_refs = True
-                dbg("reference %s." % reference)
-                break
-            else:
-                dbg("%08x not in reference list." % (start_pos - i))
+        if start_pos in self.all_references:
+            for i in range(0,Globals.pointer_size):
+                for r in self.all_references:
+                    if r == start_pos - i:
+                        dbg("%08x was in reference list." % (start_pos - i))
+                        reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
+                        show_refs = True
+                        dbg("reference %s." % reference)
+                        break
+                if show_refs:
+                    break
+        else:
+            dbg("%08x not in reference list." % start_pos)
         r = self.regions.find_region_containing(start_pos, start_pos)
         return r, reference, show_refs
 

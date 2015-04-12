@@ -61,7 +61,7 @@ class ReferenceList(list):
         else:
             address = ref
         dbg("add reference %08x to reference list" % (address))
-        size = 4
+        size = Globals.pointer_size
         add_range(self.range, address, size)
         super().append(ref)
 

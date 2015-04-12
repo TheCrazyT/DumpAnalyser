@@ -84,6 +84,18 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         Globals.hex_grid.load()
         db.close()
 
+    def do_save(self,filename):
+        db.connect(filename)
+        db.create_rva_list_tbl()
+        db.create_regions_tbl()
+        db.create_regions_ref_tbl()
+        db.create_regions_prop_tbl()
+        db.save_rva_list(self.rva_list)
+        Globals.hex_grid.save()
+        db.commit()
+        db.close()
+
+
     def load(self):
         (filename, unknown) = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', './save', '*.sav')
         if filename != "":
@@ -112,15 +124,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
                 os.remove(filename)
             except(FileNotFoundError):
                 pass
-            db.connect(filename)
-            db.create_rva_list_tbl()
-            db.create_regions_tbl()
-            db.create_regions_ref_tbl()
-            db.create_regions_prop_tbl()
-            db.save_rva_list(self.rva_list)
-            Globals.hex_grid.save()
-            db.commit()
-            db.close()
+            self.do_save(filename)
 
     def search_next(self):
         pos = Globals.search_window.search_next()
@@ -153,7 +157,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     def read_pointer(self, pos):
         self.cached_file.seek(pos)
-        b = self.cached_file.read(4)
+        b = self.cached_file.read(Globals.pointer_size)
         return b
 
     def read_hex(self, pos):
@@ -213,8 +217,6 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.opened_file = None
         self.statusBar().showMessage('Ready')
 
-# If the program is run directly or passed as an argument to the python
-# interpreter then create a HelloWorld instance and show it
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     main_window = MainWindow()
