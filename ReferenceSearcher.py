@@ -85,8 +85,8 @@ class ReferenceSearcher(QtCore.QThread):
             page = set()
             buf = self._file.read(self._file.cache_size)
             for i2 in range(0,len(buf)):
-                if i2+2<len(buf):
-                    v = buf[i2] * 0x10000 + buf[i2+1] * 0x100 + buf[i2+2]
+                if i2+1<len(buf):
+                    v = buf[i2] * 0x100 + buf[i2+1]
                     #dbg("%06x" % v)
                     page.add(v)
                     time.sleep(Globals.SLEEP_BETWEEN_PAGE_VALUE)
@@ -251,7 +251,7 @@ class ReferenceSearcher(QtCore.QThread):
                     k += 1
 
                     page_pos = self.get_page_by_pos()
-                    v = search_data[0]*0x10000 + search_data[1]*0x100 + search_data[2]
+                    v = search_data[0]*0x100 + search_data[1]
                     if not self.is_value_in_page(v,page_pos):
                         continue
 
@@ -302,7 +302,7 @@ class ReferenceSearcher(QtCore.QThread):
                     for (i, s) in search_data:
                         time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)
                         try:
-                            v = s[0]*0x10000 + s[1]*0x100 + s[2]
+                            v = s[0]*0x100 + s[1]
                             if not self.is_value_in_page(v,page_pos):
                                 continue
 

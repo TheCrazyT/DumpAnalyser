@@ -83,7 +83,7 @@ class ReferenceSearcherTest(unittest.TestCase):
         Globals.r_searcher.set_size(1024*10)
         Globals.r_searcher.set_file(CachedReaderMock())
         Globals.r_searcher.index_pages()
-        assert Globals.r_searcher.is_value_in_page(0x111213,0)
+        assert Globals.r_searcher.is_value_in_page(0x1112,0)
 
     def test_search_all(self):
         dbg("test_search_all")
