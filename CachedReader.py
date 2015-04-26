@@ -10,11 +10,11 @@ class CachedReader:
         self.cache_pos = None
         self.cache_size = CACHE_SIZE
         self.pos = 0
-        if (file.locker == None):
+        if file.locker is None:
             self.file.locker = QMutex()
 
     def within_cache(self, size):
-        if self.cache_pos == None:
+        if self.cache_pos is None:
             return False
         if (self.pos >= self.cache_pos) and (self.pos + size <= self.cache_pos + self.cache_size):
             return True

@@ -1,8 +1,10 @@
 import sys
 import os
-from PropertiesWindow import *
-from MarkedRegions import *
-from ReferenceSearcher import *
+from Globals import dbg
+import Globals
+from MarkedRegions import MarkedRegion,Reference
+from ReferenceSearcher import ReferenceSearcher
+from PropertiesWindow import PropertiesWindow
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 import unittest
 import struct

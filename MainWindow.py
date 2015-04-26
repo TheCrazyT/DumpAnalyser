@@ -52,26 +52,14 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     def refresh_references(self):
         self.statusBar().showMessage('Recalculating all references')
+
         Globals.hex_grid.all_references = ReferenceList()
         for r in Globals.hex_grid.regions.region_list:
             r.references = []
             ref = Globals.r_searcher.get_ref(r)
             ref.set_fully_scanned(False)
-        tmp_sbrr = Globals.SLEEP_BETWEEN_REGION_READ
-        tmp_sbrs = Globals.SLEEP_BETWEEN_REGION_SCAN
-        tmp_sbr = Globals.SLEEP_BETWEEN_REGIONS
-        Globals.SLEEP_BETWEEN_REGION_READ = 0
-        Globals.SLEEP_BETWEEN_REGION_SCAN = 0
-        Globals.SLEEP_BETWEEN_REGIONS = 0
-        Globals.r_searcher.forceScan = True
-        time.sleep(11)
-        dbg("Lock started till ref-refresh finished.")
-        with QMutexLocker(Globals.r_searcher.lock):
-            time.sleep(1)
-        dbg("Lock stoppped.")
-        Globals.SLEEP_BETWEEN_REGION_READ = tmp_sbrr
-        Globals.SLEEP_BETWEEN_REGION_SCAN = tmp_sbrs
-        Globals.SLEEP_BETWEEN_REGIONS = tmp_sbr
+
+        Globals.r_searcher.force_scan()
 
     def search(self, pos):
         self.set_pos(pos)
@@ -90,8 +78,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         db.create_regions_tbl()
         db.create_regions_ref_tbl()
         db.create_regions_prop_tbl()
+        db.create_indexed_pages()
         db.save_rva_list(self.rva_list)
         Globals.hex_grid.save()
+        db.save_indexed_pages()
         db.commit()
         db.close()
 
@@ -172,8 +162,8 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.pos = 0
         self.file_size = os.path.getsize(fname)
         Globals.hex_grid.update()
-        Globals.r_searcher.file = CachedReader(self.opened_file)
-        Globals.r_searcher.size = self.file_size
+        Globals.r_searcher.set_file(CachedReader(self.opened_file))
+        Globals.r_searcher.set_size(self.file_size)
 
     def open_dlg(self):
         if (self.opened_file != None):

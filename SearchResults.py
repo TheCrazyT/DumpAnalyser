@@ -26,7 +26,7 @@ class SearchResults(QtWidgets.QMainWindow, SearchResultsUI):
         self.setFocus()
 
     def selectionChanged(self, txt):
-        if txt == "" or txt == None:
+        if txt == "" or txt is None:
             return
         print("selectionChanged %s" % txt)
         pos = int(txt, 16)

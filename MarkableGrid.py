@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from MarkedRegions import *
 import Globals
-from   Globals import *
+from Globals import *
 
 class CustomSelection(QtCore.QItemSelection):
     def __init__(self, first_idx, last_idx):
@@ -15,7 +15,7 @@ class CustomSelection(QtCore.QItemSelection):
     def indexes(self):
         width = Globals.hex_grid.width
         row = Globals.hex_grid.row
-        if self.idx_list == None:
+        if self.idx_list is None:
             self.idx_list = []
             for i in range(self.first_idx, self.last_idx):
                 column = i % (width + 2)
@@ -47,20 +47,20 @@ class MySelectionModel(QtCore.QItemSelectionModel):
                     maxR = None
                     minR = None
                     for k in i.indexes():
-                        if (maxR == None) or (k.row() > maxR):
+                        if (maxR is None) or (k.row() > maxR):
                             maxR = k.row()
-                        if (minR == None) or (k.row() < minR):
+                        if (minR is None) or (k.row() < minR):
                             minR = k.row()
 
                     for k in i.indexes():
                         idx = k.row() * (width + 2) + k.column()
                         if k.row() == minR:
-                            if (min_idx == None) or (idx > min_idx):
+                            if (min_idx is None) or (idx > min_idx):
                                 min_idx = k.row() * (width + 2) + k.column()
                         if k.row() == maxR:
-                            if (max_idx == None) or (idx < max_idx):
+                            if (max_idx is None) or (idx < max_idx):
                                 max_idx = k.row() * (width + 2) + k.column()
-                    if min_idx == None:
+                    if min_idx is None:
                         return
                 # max_idx = cIdx.row()*width+cIdx.column()
 
@@ -105,7 +105,7 @@ class MyTableModel(QtCore.QAbstractTableModel):
         return QtCore.Qt.MoveAction
 
     def rowCount(self, parent):
-        if Globals.main_window.size == None:
+        if Globals.main_window.size is None:
             return 0
         if Globals.hex_grid.width == 0:
             return 0
@@ -169,7 +169,7 @@ class MarkableGrid(QtWidgets.QTableView):
         self.setFont(font);
         self.regions = MarkedRegions()
         self.all_references = ReferenceList()
-        self.all_guessed_regions = []
+        self.all_guessed_regions = set()
         self.view_regions = []
         self.width = width
         self.height = height
@@ -292,8 +292,7 @@ class MarkableGrid(QtWidgets.QTableView):
         if newstart_pos != region.start_pos:
             for ref in region.references:
                 self.all_references.remove(ref)
-            sref = Globals.r_searcher.get_ref(ref)
-            sref.set_fully_scanned(False)
+        Globals.r_searcher.get_ref(region).set_fully_scanned(False)
         region.start_pos = newstart_pos
         region.end_pos = newend_pos
         region.references = []
@@ -340,15 +339,15 @@ class MarkableGrid(QtWidgets.QTableView):
         x1 = None
         y1 = None
         for x in self.selectedIndexes():
-            if (x1 == None) or (y1 == None) or (x.row() < y1):
+            if (x1 is None) or (y1 is None) or (x.row() < y1):
                 y1 = x.row()
                 x1 = x.column()
-            elif (x2 == None) or (x.row() == y1) and (x.column() < x1):
+            elif (x2 is None) or (x.row() == y1) and (x.column() < x1):
                 x2 = x.column()
-            if (x2 == None) or (y2 == None) or (x.row() > y2):
+            if (x2 is None) or (y2 is None) or (x.row() > y2):
                 y2 = x.row()
                 x2 = x.column()
-            elif (x2 == None) or (x.row() == y2) and (x.column() > x2):
+            elif (x2 is None) or (x.row() == y2) and (x.column() > x2):
                 x2 = x.column()
         dbg("get_start_end_sel %d %d - %d %d" % (x1, y1, x2, y2))
         start_pos = (x1 - 1) + y1 * self.width
@@ -446,7 +445,7 @@ class MarkableGrid(QtWidgets.QTableView):
         if start_pos in self.all_references:
             for i in range(0,Globals.pointer_size):
                 for r in self.all_references:
-                    if r == start_pos - i:
+                    if r.address == start_pos - i:
                         dbg("%08x was in reference list." % (start_pos - i))
                         reference = Globals.r_searcher.calculate_pointer_pos_rva(start_pos - i)
                         show_refs = True

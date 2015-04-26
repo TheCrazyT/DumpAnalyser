@@ -46,7 +46,7 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             tli_ref.data = region.start_pos
             tli_ref.type = TYPE_REGION
             ref = Globals.r_searcher.get_ref(region)
-            if ref.get_virtual_pos() == None:
+            if ref.get_virtual_pos() is None:
                 Globals.r_searcher.calculate_search_data_by_rva(region)
             tli_ref.setText(0, "References of %08x (%08x)" % (region.start_pos, ref.get_virtual_pos()))
             for r in region.references:
@@ -82,7 +82,7 @@ class PropertiesWindow(QtWidgets.QMainWindow, PropertiesUI):
             tli_ref.data = region
             tli_ref.type = TYPE_NAME
             name = region.get_name()
-            if name == None:
+            if name is None:
                 name = "[None]"
             tli_ref.setText(0, "Name: %s" % name)
             self.tvProps.addTopLevelItem(tli_ref)

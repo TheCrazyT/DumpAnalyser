@@ -144,6 +144,7 @@ class MarkedRegions():
     def load(self):
         global last_id
         self.region_list = db.load_regions()
+        db.load_indexed_pages()
         all_refs = ReferenceList()
         for r in self.region_list:
             if r.id > last_id:
@@ -159,7 +160,7 @@ class MarkedRegions():
 
 class MarkedRegion():
     def __init__(self, start_pos, length, id=None):
-        if id == None:
+        if id is None:
             id = gen_new_id()
         self.id = id
         self.start_pos = start_pos

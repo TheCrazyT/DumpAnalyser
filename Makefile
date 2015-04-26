@@ -1,31 +1,31 @@
 tests: PropertiesWindowTest MarkableGridTest ReferenceSearcherTest SearchWindowTest ReferenceListTest dbTest RegionsWindowTest RegionListTest VersionCompatibilityTest
 
 PropertiesWindowTest:
-	PYTHONPATH=$(shell pwd) python tests/PropertiesWindowTest.py
+	python -m tests.PropertiesWindowTest
 
 MarkableGridTest:
-	PYTHONPATH=$(shell pwd) python tests/MarkableGridTest.py
+	python -m tests.MarkableGridTest
 
 ReferenceSearcherTest:
-	PYTHONPATH=$(shell pwd) python tests/ReferenceSearcherTest.py
+	python -m tests.ReferenceSearcherTest
 
 SearchWindowTest:
-	PYTHONPATH=$(shell pwd) python tests/SearchWindowTest.py
+	python -m tests.SearchWindowTest
 
 ReferenceListTest:
-	PYTHONPATH=$(shell pwd) python tests/ReferenceListTest.py
+	python -m tests.ReferenceListTest
 
 RegionListTest:
-	PYTHONPATH=$(shell pwd) python tests/RegionListTest.py
+	python -m tests.RegionListTest
 
 dbTest:
-	PYTHONPATH=$(shell pwd) python tests/dbTest.py
+	python -m tests.dbTest
 
 RegionsWindowTest:
-	PYTHONPATH=$(shell pwd) python tests/RegionsWindowTest.py
+	python -m tests.RegionsWindowTest
 
 VersionCompatibilityTest:
-	PYTHONPATH=$(shell pwd) python tests/VersionCompatibilityTest.py
+	python -m tests.VersionCompatibilityTest
 
 all:
 	-rm -R build/exe.*

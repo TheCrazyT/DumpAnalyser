@@ -39,6 +39,8 @@ class MainWindowMock:
 class ReferenceSearcherMock:
     def invalidate_pointer_search(self,regions):
         pass
+    def calculate_pointer_pos_rva(self,pos):
+        return pos
 
 class ToolMenuMock:
     def enableRegion(self):
@@ -165,7 +167,7 @@ class MarkableGridTest(unittest.TestCase):
         self.assertIsInstance(r,list)
         self.assertEqual(len(r),0)
 
-        grid.all_references.append(64)
+        grid.all_references.append(Reference(64))
         idx = grid.model.index(0, 0, QtCore.QModelIndex())
         grid.scrollTo(idx)
         grid.update_view()
@@ -191,6 +193,25 @@ class MarkableGridTest(unittest.TestCase):
                 else:
                     assert not((color.red() == 0)and(color.green() == 0xFF)and(color.blue() == 0)),"invalid colored cell at %d,%d (%02x,%02x,%02x)" % (item.x,item.y,color.red(),color.green(),color.blue())
             assert found,"Reference was not found"
+
+        r, reference, show_refs = grid.find_region_at(63)
+        assert not show_refs
+        assert reference is None
+        r, reference, show_refs = grid.find_region_at(64)
+        assert show_refs
+        assert reference != None
+        r, reference, show_refs = grid.find_region_at(65)
+        assert show_refs
+        assert reference != None
+        r, reference, show_refs = grid.find_region_at(66)
+        assert show_refs
+        assert reference != None
+        r, reference, show_refs = grid.find_region_at(67)
+        assert show_refs
+        assert reference != None
+        r, reference, show_refs = grid.find_region_at(68)
+        assert not show_refs
+        assert reference is None
 
 
 

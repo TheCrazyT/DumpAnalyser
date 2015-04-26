@@ -81,6 +81,27 @@ def load_regions():
         r.properties.extend(load_region_properties(row[2]))
     return regions
 
+def load_indexed_pages():
+    global cur
+    indexed_pages = []
+    try:
+        cur.execute("SELECT page,value FROM indexed_pages ORDER BY page ASC")
+        rows = cur.fetchall()
+        last_page = -1
+        pg = set()
+        indexed_pages.append(pg)
+        for row in rows:
+            page = row[0]
+            value = row[1]
+            if page!=last_page:
+                pg = set()
+                indexed_pages.append(pg)
+            pg.add(value)
+            last_page = page
+    except(sqlite3.OperationalError):
+        pass
+    Globals.r_searcher.set_indexed_pages(indexed_pages)
+
 
 def save_region_properties(region):
     global cur
@@ -114,6 +135,21 @@ def save_region(region):
     cur.execute("INSERT INTO regions (fullyScanned%s) VALUES (?%s)" % (column_list,needed_params),
                 params)
 
+def save_indexed_pages():
+    global cur
+    indexed_pages = Globals.r_searcher.get_indexed_pages()
+
+    k = 0
+    for p in indexed_pages:
+        for v in p:
+            cur.execute("INSERT INTO indexed_pages (page,value) VALUES (?,?)" , (k,v))
+        k += 1
+
+def create_indexed_pages():
+    global cur
+    cur.execute('CREATE TABLE IF NOT EXISTS indexed_pages ( \
+         "page" INTEGER,\
+         "value" INTEGER)')
 
 def create_rva_list_tbl():
     global cur

@@ -23,6 +23,14 @@ class ReferenceSearcherMock:
         return ReferenceWrapper(o)
     def reset_ref_map(self):
         pass
+    def get_indexed_pages(self):
+        indexed_pages = []
+        page = set()
+        page.add(0x1234)
+        indexed_pages.append(page)
+        return indexed_pages
+    def set_indexed_pages(self,indexed_pages):
+        pass
 
 class dbTest(unittest.TestCase):
     def setUp(self):
@@ -33,6 +41,7 @@ class dbTest(unittest.TestCase):
         db.connect(self.file)
         db.create_regions_tbl()
         db.create_regions_ref_tbl()
+        db.create_indexed_pages()
     def tearDown(self):
         db.close()
         os.remove(self.file)
@@ -42,7 +51,9 @@ class dbTest(unittest.TestCase):
         r.set_color("red")
         r.set_name("test")
         db.save_region(r)
+        db.save_indexed_pages()
         regions = db.load_regions()
+        db.load_indexed_pages()
         assert(len(regions)==1)
         r = regions[0]
         assert(r.get_color_value() == "red")
