@@ -80,24 +80,52 @@ class ReferenceSearcherTest(unittest.TestCase):
 
     def test_index_pages(self):
         dbg("test_index_pages")
-        Globals.r_searcher.set_size(1024*10)
-        Globals.r_searcher.set_file(CachedReaderMock())
-        Globals.r_searcher.index_pages()
-        assert Globals.r_searcher.is_value_in_page(0x1112,0)
+        r_searcher = Globals.r_searcher
+        assert isinstance(r_searcher,ReferenceSearcher)
+        r_searcher.set_size(1024*10)
+        r_searcher.set_file(CachedReaderMock())
+        r_searcher.index_pages()
+        assert r_searcher.is_value_in_page(0x1112,0)
 
     def test_search_all(self):
         dbg("test_search_all")
+        r_searcher = Globals.r_searcher
+        assert isinstance(r_searcher,ReferenceSearcher)
         search_regions = []
         pos = 1024*1+100
         r = MarkedRegion(pos,10)
         file = CachedReaderMock()
         search_regions.append(r)
-        Globals.r_searcher.set_size(1024*10)
-        Globals.r_searcher.set_file(file)
+        r_searcher.set_size(1024*10)
+        r_searcher.set_file(file)
         file.modify(1024+10,pos)
-        Globals.r_searcher.index_pages()
-        Globals.r_searcher.search_all(search_regions)
+        r_searcher.index_pages()
+        r_searcher.search_all(search_regions)
         assert len(r.references)>0
+
+    def test_guess_regions(self):
+        file = CachedReaderMock()
+        dbg("guess_regions")
+        r_searcher = Globals.r_searcher
+        assert isinstance(r_searcher,ReferenceSearcher)
+
+        r_searcher.set_size(1024*10)
+        r_searcher.set_file(file)
+        file.modify(3,2000-20)
+        file.modify(1024+30,4000-20)
+        file.modify(1024*2+30,4000-21)
+        r_searcher.index_pages()
+        references = ReferenceList()
+        r1 = Reference(2000)
+        references.append(r1)
+        r2 = Reference(4000)
+        references.append(r2)
+        r_searcher.guess_regions(references)
+        ref1 = r_searcher.get_ref(r1)
+        ref2 = r_searcher.get_ref(r2)
+        assert(ref1.get_fully_scanned())
+        assert(len(ref1.get_guessed_regions())==1)
+        assert(len(ref2.get_guessed_regions())==2)
 
 if __name__ == "__main__":
     unittest.main()

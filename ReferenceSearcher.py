@@ -159,7 +159,7 @@ class ReferenceSearcher(QtCore.QThread):
                         time.sleep(Globals.SLEEP_BETWEEN_REGIONS)
                     Globals.hex_grid.all_references = all_refs
                     self._pos = 0
-                    #self.guess_regions(all_refs)
+                    self.guess_regions(all_refs)
                     Globals.hex_grid.all_guessed_regions = set()
                     for ref in Globals.hex_grid.all_references:
                         sref = Globals.r_searcher.get_ref(ref)
@@ -268,52 +268,53 @@ class ReferenceSearcher(QtCore.QThread):
 
     def guess_regions(self, references):
         dbg("guess_regions (%d references)" % len(references))
-        doScan = False
+        do_scan = False
         cnt = 0
         for r in references:
             ref = self.get_ref(r)
             if not ref.get_fully_scanned():
-                doScan = True
-        if doScan:
+                do_scan = True
+        if do_scan:
             search_data_list = []
             for r in references:
                 ref = self.get_ref(r)
                 if ref.get_fully_scanned():
                     continue
                 search_data = []
-				#TODO use selectionRanges instead of that
                 for i in range(0, 32):
                     search_data.append((i, self.calculate_search_data_by_rva(r.address - i)))
                 search_data_list.append(search_data)
+            buf_val = bytearray()
+            k = 0
             while self._pos < self._size - self._search_data_size:
                 dbg("%08x/%08x" % (self._pos, self._size - self._search_data_size))
                 self._file.seek(self._pos)
                 page_pos = self.get_page_by_pos()
                 buf = self._file.read(self._file.cache_size)
-                n = 0
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
-                for r in references:
-                    ref = self.get_ref(r)
-                    if ref.get_fully_scanned():
+                for b in buf:
+                    search_data_index = 0
+                    k += 1
+                    buf_val.append(b)
+                    if k-1<Globals.pointer_size:
                         continue
+                    l = len(buf_val)
+                    buf_val = buf_val[l-Globals.pointer_size:l]
+                    for r in references:
+                        ref = self.get_ref(r)
+                        if ref.get_fully_scanned():
+                            break
 
-                    search_data = search_data_list[n]
-                    n += 1
-                    for (i, s) in search_data:
-                        time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)
-                        try:
-                            v = s[0]*0x100 + s[1]
-                            if not self.is_value_in_page(v,page_pos):
+                        search_data = search_data_list[search_data_index]
+                        search_data_index += 1
+                        for (i, s) in search_data:
+                            if s != buf_val:
                                 continue
-
-                            buf.index(s)
                             if r.address - i not in ref.get_guessed_regions():
                                 ref.get_guessed_regions().add(r.address - i)
                                 cnt += 1
                                 break
-                        except(ValueError):
-                            pass
-                self._pos += len(buf) - self._search_data_size
+                self._pos += len(buf)
             for r in references:
                 ref = self.get_ref(r)
                 for gr in ref.get_guessed_regions():
@@ -321,7 +322,7 @@ class ReferenceSearcher(QtCore.QThread):
                 ref = self.get_ref(r)
                 ref.set_fully_scanned(True)
         else:
-            dbg("doScan was false")
+            dbg("do_scan was false")
         dbg("end guessRegions (%d added)" % cnt)
 
     def get_ref(self,o):
