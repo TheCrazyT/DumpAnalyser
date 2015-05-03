@@ -1,10 +1,8 @@
 import time
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 from PyQt5.QtCore import QMutex, QMutexLocker
-from struct import *
-from MarkedRegions import MarkedRegion,MarkedRegions,Reference,ReferenceList
+from MarkedRegions import MarkedRegion,Reference,ReferenceList
 import Globals
-import CachedReader
 from Globals import *
 
 class ReferenceWrapper():
@@ -186,7 +184,7 @@ class ReferenceSearcher(QtCore.QThread):
         return self.calculate_rva_by_virt(p)
 
     def calculate_rva_by_virt(self, v_pos):
-        for (rva, vaddr, size) in Globals.main_window.rva_list:
+        for (rva, vaddr, size) in Globals.main_window.get_rva_list():
             if v_pos >= vaddr and v_pos <= vaddr + size:
                 pos = v_pos - vaddr + rva
                 dbg("calculate_rva_by_virt(%08x) returned %08x" % (v_pos, pos))
@@ -195,7 +193,7 @@ class ReferenceSearcher(QtCore.QThread):
         return None
 
     def calculate_virt_by_rva(self, pos):
-        for (rva, vaddr, size) in Globals.main_window.rva_list:
+        for (rva, vaddr, size) in Globals.main_window.get_rva_list():
             if pos >= rva and pos <= rva + size:
                 v_pos = pos - rva + vaddr
                 dbg("calculate_virt_by_rva(%08x) returned %08x" % (pos, v_pos))
@@ -209,18 +207,18 @@ class ReferenceSearcher(QtCore.QThread):
             pos = region.start_pos
         else:
             pos = data
-        vPos = self.calculate_virt_by_rva(pos)
-        if vPos != None:
-            dbg("calculated %08x to %08x" % (pos, vPos,))
+        virtual_pos = self.calculate_virt_by_rva(pos)
+        if virtual_pos != None:
+            dbg("calculated %08x to %08x" % (pos, virtual_pos,))
             if type(data) is MarkedRegion:
                 ref = self.get_ref(data)
-                ref.set_virtual_pos(vPos)
-            return pack("<I", vPos)
+                ref.set_virtual_pos(virtual_pos)
+            return virtual_pos
         dbg("not calculated,using plain %08x" % (pos,))
         if type(data) is MarkedRegion:
             ref = self.get_ref(data)
             ref.set_virtual_pos(pos)
-        return pack("<I", pos)
+        return pos
 
     def get_page_by_pos(self):
         pos = self._pos
@@ -234,7 +232,7 @@ class ReferenceSearcher(QtCore.QThread):
             ref = self.get_ref(r)
             if ref.get_fully_scanned():
                 continue
-            search_data = self.calculate_search_data_by_rva(r)
+            search_data = Globals.get_raw_pointer(self.calculate_search_data_by_rva(r))
             search_data_list.append(search_data)
         while self._pos < self._size - self._search_data_size:
             self._file.seek(self._pos)
@@ -280,24 +278,37 @@ class ReferenceSearcher(QtCore.QThread):
                 ref = self.get_ref(r)
                 if ref.get_fully_scanned():
                     continue
-                search_data = []
+                search_data = dict()
                 for i in range(0, 32):
-                    search_data.append((i, self.calculate_search_data_by_rva(r.address - i)))
+                    pointer = self.calculate_search_data_by_rva(r.address - i)
+                    raw_pointer = Globals.get_raw_pointer(pointer)
+                    search_data[pointer] = (i,raw_pointer)
                 search_data_list.append(search_data)
             buf_val = bytearray()
+            buf_val_norm = 0
             k = 0
             while self._pos < self._size - self._search_data_size:
                 dbg("%08x/%08x" % (self._pos, self._size - self._search_data_size))
                 self._file.seek(self._pos)
-                page_pos = self.get_page_by_pos()
                 buf = self._file.read(self._file.cache_size)
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
                 for b in buf:
                     search_data_index = 0
                     k += 1
+                    buf_val_norm <<= 8
+                    buf_val_norm += b
                     buf_val.append(b)
                     if k-1<Globals.pointer_size:
                         continue
+                    buf_val_hashable = 0
+                    byte_map = 0xFF
+                    #dbg("%08x" % buf_val_norm)
+                    for i in range(0,pointer_size):
+                        part_value = buf_val_norm & (byte_map<<(8*i))
+                        part_value >>= 8*i
+                        part_value <<= 8*(pointer_size-i-1)
+                        buf_val_hashable += part_value
+                        #dbg("%08x" % buf_val_hashable)
                     l = len(buf_val)
                     buf_val = buf_val[l-Globals.pointer_size:l]
                     for r in references:
@@ -307,13 +318,15 @@ class ReferenceSearcher(QtCore.QThread):
 
                         search_data = search_data_list[search_data_index]
                         search_data_index += 1
-                        for (i, s) in search_data:
-                            if s != buf_val:
-                                continue
-                            if r.address - i not in ref.get_guessed_regions():
-                                ref.get_guessed_regions().add(r.address - i)
-                                cnt += 1
-                                break
+                        if buf_val_hashable in search_data:
+                            for s in search_data:
+                                (i,raw_pointer) = search_data[s]
+                                if raw_pointer != buf_val:
+                                    continue
+                                if r.address - i not in ref.get_guessed_regions():
+                                    ref.get_guessed_regions().add(r.address - i)
+                                    cnt += 1
+                                    break
                 self._pos += len(buf)
             for r in references:
                 ref = self.get_ref(r)

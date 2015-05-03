@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QMutex, QMutexLocker
 from PyQt5 import QtWidgets
+from struct import *
 
 r_searcher = None
 hex_grid = None
@@ -26,3 +27,6 @@ def dbg(s):
 def input(widget,txt,label):
     dialog = QtWidgets.QInputDialog()
     return dialog.getText(widget, txt, label, QtWidgets.QLineEdit.Normal, "")
+
+def get_raw_pointer(p):
+    return pack("<I", p)

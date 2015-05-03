@@ -33,10 +33,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     # Another callback
     def destroy(self, widget, data=None):
-        self.r_searcher.stop()
-        self.r_searcher.destroy()
-        if (self.opened_file != None):
-            self.opened_file.close()
+        Globals.r_searcher.stop()
+        Globals.r_searcher.destroy()
+        if (self._opened_file != None):
+            self._opened_file.close()
 
     def show_regions_window(self):
         Globals.regions_window.show()
@@ -45,7 +45,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         Globals.rva_window.show()
 
     def show_search_window(self):
-        Globals.search_window.show(self.opened_file, self.file_size, self.search)
+        Globals.search_window.show(self._opened_file, self._file_size, self.search)
 
     def show_references_window(self):
         Globals.references_window.show()
@@ -68,7 +68,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     def do_load(self, filename):
         db.connect(filename)
-        self.rva_list = db.load_rva_list()
+        self._rva_list = db.load_rva_list()
         Globals.hex_grid.load()
         db.close()
 
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         db.create_regions_ref_tbl()
         db.create_regions_prop_tbl()
         db.create_indexed_pages()
-        db.save_rva_list(self.rva_list)
+        db.save_rva_list(self._rva_list)
         Globals.hex_grid.save()
         db.save_indexed_pages()
         db.commit()
@@ -128,14 +128,14 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
     def set_pos(self, pos):
         pos -= pos % Globals.hex_grid.width
-        self.pos = pos
-        y = int(self.pos / Globals.hex_grid.width)
+        self._pos = pos
+        y = int(self._pos / Globals.hex_grid.width)
         idx = Globals.hex_grid.model.index(y, 0, QtCore.QModelIndex())
         Globals.hex_grid.scrollTo(idx)
 
     def read_txt(self, pos, length):
-        self.cached_file.seek(pos)
-        s = self.cached_file.read(length)
+        self._cached_file.seek(pos)
+        s = self._cached_file.read(length)
         txt = ""
         for b in s:
             if (10 == b) or (13 == b) or (9 == b) or (chr(b) not in string.printable):
@@ -146,42 +146,43 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         return txt
 
     def read_pointer(self, pos):
-        self.cached_file.seek(pos)
-        b = self.cached_file.read(Globals.pointer_size)
+        self._cached_file.seek(pos)
+        b = self._cached_file.read(Globals.pointer_size)
         return b
 
     def read_hex(self, pos):
-        self.cached_file.seek(pos)
-        b = self.cached_file.read(1)[0]
+        self._cached_file.seek(pos)
+        b = self._cached_file.read(1)[0]
         return "%02x" % b
 
     def open_file(self, fname):
-        self.opened_file = open(fname, "rb")
-        self.opened_file.locker = None
-        self.cached_file = CachedReader(self.opened_file)
-        self.pos = 0
-        self.file_size = os.path.getsize(fname)
+        self._opened_file = open(fname, "rb")
+        self._opened_file.locker = None
+        self._cached_file = CachedReader(self._opened_file)
+        self._pos = 0
+        self._file_size = os.path.getsize(fname)
         Globals.hex_grid.update()
-        Globals.r_searcher.set_file(CachedReader(self.opened_file))
-        Globals.r_searcher.set_size(self.file_size)
+        Globals.r_searcher.set_file(CachedReader(self._opened_file))
+        Globals.r_searcher.set_size(self._file_size)
 
     def open_dlg(self):
-        if (self.opened_file != None):
-            self.opened_file.close()
+        if not self._opened_file is None:
+            self._opened_file.close()
         (filename, unknown) = QtWidgets.QFileDialog.getOpenFileName(self, 'Open dump file', '.', '')
         if filename != "":
             self.open_file(filename)
+
+    def get_rva_list(self):
+        return self._rva_list
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
         Globals.main_window = self
 
-        self.rva_list = []
-        self.cache_pos = None
-        self.cache_size = None
-        self.cache = None
-        self.pos = 0
-        self.file_size = 0
+        self._rva_list = []
+        self._cached_file = None
+        self._pos = 0
+        self._file_size = 0
 
         Globals.r_searcher = ReferenceSearcher(self)
         Globals.hex_grid = MarkableGrid(self, 32, 32)
@@ -204,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.setupUi(self)
         self.setCentralWidget(main_widget)
 
-        self.opened_file = None
+        self._opened_file = None
         self.statusBar().showMessage('Ready')
 
 if __name__ == "__main__":

@@ -47,12 +47,15 @@ class MarkableGridMock:
 
 class MainWindowMock:
     def __init__(self):
-        self.rva_list = [(0,0,1000)]
+        self._rva_list = [(0,0,1000)]
 
     def read_pointer(self,pos):
         assert pos == 0x68
         dbg("read_pointer %08x" % pos)
         return struct.pack("I",0x83)
+
+    def get_rva_list(self):
+        return self._rva_list
 
 class ReferenceSearcherTest(unittest.TestCase):
     def setUp(self):

@@ -8,19 +8,19 @@ RegionsUI = uic.loadUiType("regions.ui")[0]
 class RegionsWindow(QtWidgets.QMainWindow, RegionsUI):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self)
-        self.parent = parent
+        self._parent = parent
         self.setupUi(self)
 
     def regionSelected(self, widget):
         if widget != None:
-            self.parent.set_pos(widget.pos)
+            self._parent.set_pos(widget.pos)
 
     def show(self,show_window=True):
         self.lstRegions.clear()
         for r in Globals.hex_grid.regions.region_list:
             name = None
             name = r.get_name()
-            if name== None:
+            if name == None:
                 for p in r.properties:
                     if type(p) is NullString:
                         start_pos = p.start_pos
