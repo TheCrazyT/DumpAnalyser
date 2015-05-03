@@ -109,7 +109,7 @@ class MyTableModel(QtCore.QAbstractTableModel):
             return 0
         if Globals.hex_grid.width == 0:
             return 0
-        return int(Globals.main_window.file_size / Globals.hex_grid.width)
+        return int(Globals.main_window._file_size / Globals.hex_grid.width)
 
     def columnCount(self, parent):
         return Globals.hex_grid.width + 2
