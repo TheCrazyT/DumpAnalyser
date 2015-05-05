@@ -4,6 +4,8 @@ from PyQt5.QtCore import QMutex, QMutexLocker
 from MarkedRegions import MarkedRegion,Reference,ReferenceList
 import Globals
 from Globals import *
+from Progress import Progress
+from MarkableGrid import MarkableGrid
 
 class ReferenceWrapper():
     def __init__(self,object):
@@ -46,12 +48,12 @@ class ReferenceSearcher(QtCore.QThread):
         self._file = None
         self._pos = 0
         self._size = 0
-        self._lock = QMutex()
         self._force_scan = False
         self._ref_map = {}
         self._indexed_pages = []
         # TODO 64-Bit support
         self._search_data_size = Globals.pointer_size
+        self._progress = None
 
     def __del__(self):
         self.wait()
@@ -98,75 +100,96 @@ class ReferenceSearcher(QtCore.QThread):
         page = self._indexed_pages[page_pos]
         return value in page
 
+    def do_stop_progress(self):
+        grid = Globals.hex_grid
+        assert isinstance(grid,MarkableGrid)
+        grid.setEnabled(True)
+        Globals.r_searcher._force_scan = False
+        progress = Globals.r_searcher._progress
+        assert isinstance(progress,Progress)
+        progress.close()
+        Globals.r_searcher._progress = None
+        dbg("Lock stoppped.")
+        Globals.SLEEP_BETWEEN_REGION_READ = Globals.r_searcher.tmp_sbrr
+        Globals.SLEEP_BETWEEN_REGION_SCAN = Globals.r_searcher.tmp_sbrs
+        Globals.SLEEP_BETWEEN_REGIONS = Globals.r_searcher.tmp_sbr
+        Globals.SLEEP_BETWEEN_PAGE_VALUE = Globals.r_searcher.tmp_sbpv
+
     def force_scan(self):
-        tmp_sbrr = Globals.SLEEP_BETWEEN_REGION_READ
-        tmp_sbrs = Globals.SLEEP_BETWEEN_REGION_SCAN
-        tmp_sbr = Globals.SLEEP_BETWEEN_REGIONS
-        tmp_sbpv = Globals.SLEEP_BETWEEN_PAGE_VALUE
+        self.tmp_sbrr = Globals.SLEEP_BETWEEN_REGION_READ
+        self.tmp_sbrs = Globals.SLEEP_BETWEEN_REGION_SCAN
+        self.tmp_sbr = Globals.SLEEP_BETWEEN_REGIONS
+        self.tmp_sbpv = Globals.SLEEP_BETWEEN_PAGE_VALUE
         Globals.SLEEP_BETWEEN_REGION_READ = 0
         Globals.SLEEP_BETWEEN_REGION_SCAN = 0
         Globals.SLEEP_BETWEEN_REGIONS = 0
         Globals.SLEEP_BETWEEN_PAGE_VALUE = 0
+        grid = Globals.hex_grid
+        assert isinstance(grid,MarkableGrid)
+        grid.setEnabled(False)
+        self._progress = Progress(None)
+        progress_bar = self._progress.progressBar
+        assert isinstance(progress_bar,QtWidgets.QProgressBar)
+        progress_bar.setValue(0)
+        self._progress.on_stop = self.do_stop_progress
+        self._progress.show()
         self._force_scan = True
-        time.sleep(11)
-        dbg("Lock started till ref-refresh finished.")
-        with QMutexLocker(self._lock):
-            time.sleep(1)
-        dbg("Lock stoppped.")
-        Globals.SLEEP_BETWEEN_REGION_READ = tmp_sbrr
-        Globals.SLEEP_BETWEEN_REGION_SCAN = tmp_sbrs
-        Globals.SLEEP_BETWEEN_REGIONS = tmp_sbr
-        Globals.SLEEP_BETWEEN_PAGE_VALUE = tmp_sbpv
 
     def run(self):
         dbg("run")
         while True:
             time.sleep(10)
-            with QMutexLocker(self._lock):
-                Globals.main_window.statusBar().showMessage('Recalculating all references')
-                while True:
-                    if self._file is None:
-                        continue
-                    if Globals.hex_grid is None:
-                        break;
-                    self.index_pages()
-                    search_regions = []
-                    if len(Globals.hex_grid.regions.region_list) > 0:
-                        dbg("processing")
-                        for r in Globals.hex_grid.regions.region_list:
-                            ref = self.get_ref(r)
-                            if not ref.get_fully_scanned():
-                                search_regions.append(r)
-                        if len(search_regions) > 0:
-                            self._pos = 0
-                            self.search_all(search_regions)
-                        time.sleep(Globals.SLEEP_BETWEEN_REGIONS)
-                    all_refs = ReferenceList()
-                    if len(Globals.hex_grid.regions.region_list) > 0:
-                        for r in Globals.hex_grid.regions.region_list:
-                            all_refs.extend(r.references)
-                    search_regions = []
-                    if len(Globals.hex_grid.regions.region_list) > 0:
-                        for r in Globals.hex_grid.regions.region_list:
-                            ref = self.get_ref(r)
-                            if not ref.get_pointers_fully_scanned():
-                                search_regions.append(r)
-                        if len(search_regions) > 0:
-                            self._pos = 0
-                            self.search_all_pointers(search_regions, all_refs)
-                        time.sleep(Globals.SLEEP_BETWEEN_REGIONS)
-                    Globals.hex_grid.all_references = all_refs
-                    self._pos = 0
-                    self.guess_regions(all_refs)
-                    Globals.hex_grid.all_guessed_regions = set()
-                    for ref in Globals.hex_grid.all_references:
-                        sref = Globals.r_searcher.get_ref(ref)
-                        Globals.hex_grid.all_guessed_regions = Globals.hex_grid.all_guessed_regions.union(sref.get_guessed_regions())
-                    if self._force_scan:
-                        self._force_scan = False
-                    else:
-                        break
-                self._parent.statusBar().showMessage('Ready')
+            Globals.main_window.statusBar().showMessage('Recalculating all references')
+            if self._progress:
+                progress_bar = self._progress.progressBar
+                lbl_description = self._progress.lblDescription
+                assert isinstance(progress_bar,QtWidgets.QProgressBar)
+                assert isinstance(lbl_description,QtWidgets.QLabel)
+                lbl_description.setText('Recalculating all references.')
+            while True:
+                if self._file is None:
+                    continue
+                if Globals.hex_grid is None:
+                    break;
+                self.index_pages()
+                search_regions = []
+                if len(Globals.hex_grid.regions.region_list) > 0:
+                    dbg("processing")
+                    for r in Globals.hex_grid.regions.region_list:
+                        ref = self.get_ref(r)
+                        if not ref.get_fully_scanned():
+                            search_regions.append(r)
+                    if len(search_regions) > 0:
+                        self._pos = 0
+                        self.search_all(search_regions)
+                    time.sleep(Globals.SLEEP_BETWEEN_REGIONS)
+                all_refs = ReferenceList()
+                if len(Globals.hex_grid.regions.region_list) > 0:
+                    for r in Globals.hex_grid.regions.region_list:
+                        all_refs.extend(r.references)
+                search_regions = []
+                if len(Globals.hex_grid.regions.region_list) > 0:
+                    for r in Globals.hex_grid.regions.region_list:
+                        ref = self.get_ref(r)
+                        if not ref.get_pointers_fully_scanned():
+                            search_regions.append(r)
+                    if len(search_regions) > 0:
+                        self._pos = 0
+                        self.search_all_pointers(search_regions, all_refs)
+                    time.sleep(Globals.SLEEP_BETWEEN_REGIONS)
+                Globals.hex_grid.all_references = all_refs
+                self._pos = 0
+                self.guess_regions(all_refs)
+                Globals.hex_grid.all_guessed_regions = set()
+                for ref in Globals.hex_grid.all_references:
+                    sref = Globals.r_searcher.get_ref(ref)
+                    Globals.hex_grid.all_guessed_regions = Globals.hex_grid.all_guessed_regions.union(sref.get_guessed_regions())
+                if self._force_scan:
+                    self._force_scan = False
+                    self._progress = None
+                else:
+                    break
+            self._parent.statusBar().showMessage('Ready')
         dbg("stopped")
 
     def calculate_pointer_pos_rva(self, pos):
@@ -227,6 +250,14 @@ class ReferenceSearcher(QtCore.QThread):
 
     def search_all(self, regions):
         dbg("rSearcher.searchNext")
+        progress_bar = None
+        if self._progress:
+            progress_bar = self._progress.progressBar
+            lbl_description = self._progress.lblDescription
+            assert isinstance(progress_bar,QtWidgets.QProgressBar)
+            assert isinstance(lbl_description,QtWidgets.QLabel)
+            lbl_description.setText("Searching for references.")
+
         search_data_list = []
         for r in regions:
             ref = self.get_ref(r)
@@ -234,7 +265,11 @@ class ReferenceSearcher(QtCore.QThread):
                 continue
             search_data = Globals.get_raw_pointer(self.calculate_search_data_by_rva(r))
             search_data_list.append(search_data)
+        if progress_bar:
+            progress_bar.setMaximum(self._size)
         while self._pos < self._size - self._search_data_size:
+            if progress_bar:
+                progress_bar.setValue(self._pos)
             self._file.seek(self._pos)
             buf = self._file.read(self._file.cache_size)
             time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
@@ -266,6 +301,14 @@ class ReferenceSearcher(QtCore.QThread):
 
     def guess_regions(self, references):
         dbg("guess_regions (%d references)" % len(references))
+        progress_bar = None
+        if self._progress:
+            progress_bar = self._progress.progressBar
+            lbl_description = self._progress.lblDescription
+            assert isinstance(progress_bar,QtWidgets.QProgressBar)
+            assert isinstance(lbl_description,QtWidgets.QLabel)
+            lbl_description.setText("Guess start of regions.")
+
         do_scan = False
         cnt = 0
         for r in references:
@@ -287,8 +330,12 @@ class ReferenceSearcher(QtCore.QThread):
             buf_val = bytearray()
             buf_val_norm = 0
             k = 0
+            if progress_bar:
+                progress_bar.setMaximum(self._size)
             while self._pos < self._size - self._search_data_size:
                 dbg("%08x/%08x" % (self._pos, self._size - self._search_data_size))
+                if progress_bar:
+                    progress_bar.setValue(self._pos)
                 self._file.seek(self._pos)
                 buf = self._file.read(self._file.cache_size)
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
