@@ -1,6 +1,6 @@
 import time
 from PyQt5 import QtCore
-from PyQt5.QtCore import QMutex, QMutexLocker
+from PyQt5.QtCore import QMutex, QMutexLocker,pyqtSignal
 from MarkedRegions import MarkedRegion,Reference,ReferenceList
 import Globals
 from Globals import *
@@ -34,6 +34,8 @@ class ReferenceWrapper():
         return self._scan_ended
     def set_scan_ended(self,value):
         self._scan_ended = value
+    def get_address(self):
+        return self._object.address
     def get_virtual_pos(self):
         return self._virtual_pos
     def set_virtual_pos(self,value):
@@ -42,6 +44,8 @@ class ReferenceWrapper():
         return self._guessed_regions
 
 class ReferenceSearcher(QtCore.QThread):
+    signal_stop_progress = pyqtSignal()
+    signal_force_scan = pyqtSignal()
     def __init__(self, parent):
         QtCore.QThread.__init__(self)
         self._parent = parent
@@ -54,6 +58,8 @@ class ReferenceSearcher(QtCore.QThread):
         # TODO 64-Bit support
         self._search_data_size = Globals.pointer_size
         self._progress = None
+        self.signal_stop_progress.connect(self.stop_progress)
+        self.signal_force_scan.connect(self.force_scan)
 
     def __del__(self):
         self.wait()
@@ -100,7 +106,7 @@ class ReferenceSearcher(QtCore.QThread):
         page = self._indexed_pages[page_pos]
         return value in page
 
-    def do_stop_progress(self):
+    def stop_progress(self):
         grid = Globals.hex_grid
         assert isinstance(grid,MarkableGrid)
         grid.setEnabled(True)
@@ -128,10 +134,10 @@ class ReferenceSearcher(QtCore.QThread):
         assert isinstance(grid,MarkableGrid)
         grid.setEnabled(False)
         self._progress = Progress(None)
-        progress_bar = self._progress.progressBar
-        assert isinstance(progress_bar,QtWidgets.QProgressBar)
-        progress_bar.setValue(0)
-        self._progress.on_stop = self.do_stop_progress
+        progress_bar = self._progress
+        assert isinstance(progress_bar,Progress)
+        progress_bar.value_changed.emit(0)
+        self._progress.on_stop_signal = self.signal_stop_progress
         self._progress.show()
         self._force_scan = True
 
@@ -141,11 +147,7 @@ class ReferenceSearcher(QtCore.QThread):
             time.sleep(10)
             Globals.main_window.statusBar().showMessage('Recalculating all references')
             if self._progress:
-                progress_bar = self._progress.progressBar
-                lbl_description = self._progress.lblDescription
-                assert isinstance(progress_bar,QtWidgets.QProgressBar)
-                assert isinstance(lbl_description,QtWidgets.QLabel)
-                lbl_description.setText('Recalculating all references.')
+                self._progress.description_changed.emit('Recalculating all references.')
             while True:
                 if self._file is None:
                     continue
@@ -252,11 +254,9 @@ class ReferenceSearcher(QtCore.QThread):
         dbg("rSearcher.searchNext")
         progress_bar = None
         if self._progress:
-            progress_bar = self._progress.progressBar
-            lbl_description = self._progress.lblDescription
-            assert isinstance(progress_bar,QtWidgets.QProgressBar)
-            assert isinstance(lbl_description,QtWidgets.QLabel)
-            lbl_description.setText("Searching for references.")
+            progress_bar = self._progress
+            assert isinstance(progress_bar,Progress)
+            self._progress.description_changed.emit("Searching for references.")
 
         search_data_list = []
         for r in regions:
@@ -266,10 +266,10 @@ class ReferenceSearcher(QtCore.QThread):
             search_data = Globals.get_raw_pointer(self.calculate_search_data_by_rva(r))
             search_data_list.append(search_data)
         if progress_bar:
-            progress_bar.setMaximum(self._size)
+            progress_bar.maximum_changed.emit(self._size)
         while self._pos < self._size - self._search_data_size:
             if progress_bar:
-                progress_bar.setValue(self._pos)
+                progress_bar.value_changed.emit(self._pos)
             self._file.seek(self._pos)
             buf = self._file.read(self._file.cache_size)
             time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
@@ -302,12 +302,11 @@ class ReferenceSearcher(QtCore.QThread):
     def guess_regions(self, references):
         dbg("guess_regions (%d references)" % len(references))
         progress_bar = None
+        byte_map = 0xFF
         if self._progress:
-            progress_bar = self._progress.progressBar
-            lbl_description = self._progress.lblDescription
-            assert isinstance(progress_bar,QtWidgets.QProgressBar)
-            assert isinstance(lbl_description,QtWidgets.QLabel)
-            lbl_description.setText("Guess start of regions.")
+            progress_bar = self._progress
+            assert isinstance(progress_bar,Progress)
+            progress_bar.description_changed.emit("Searching for guessed regions.")
 
         do_scan = False
         cnt = 0
@@ -317,69 +316,57 @@ class ReferenceSearcher(QtCore.QThread):
                 do_scan = True
         if do_scan:
             search_data_list = []
-            for r in references:
-                ref = self.get_ref(r)
-                if ref.get_fully_scanned():
-                    continue
+            ref_list = [self.get_ref(r) for r in references if not self.get_ref(r).get_fully_scanned()]
+            for ref in ref_list:
                 search_data = dict()
                 for i in range(0, 32):
-                    pointer = self.calculate_search_data_by_rva(r.address - i)
+                    pointer = self.calculate_search_data_by_rva(ref.get_address() - i)
                     raw_pointer = Globals.get_raw_pointer(pointer)
                     search_data[pointer] = (i,raw_pointer)
                 search_data_list.append(search_data)
             buf_val = bytearray()
-            buf_val_norm = 0
+            buf_val_hashable = 0
             k = 0
             if progress_bar:
-                progress_bar.setMaximum(self._size)
+                progress_bar.maximum_changed.emit(self._size)
             while self._pos < self._size - self._search_data_size:
                 dbg("%08x/%08x" % (self._pos, self._size - self._search_data_size))
                 if progress_bar:
-                    progress_bar.setValue(self._pos)
+                    progress_bar.value_changed.emit(self._pos)
                 self._file.seek(self._pos)
                 buf = self._file.read(self._file.cache_size)
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_READ)
                 for b in buf:
                     search_data_index = 0
                     k += 1
-                    buf_val_norm <<= 8
-                    buf_val_norm += b
+
+                    buf_val_hashable >>= 8
+                    buf_val_hashable ^= b << (8*(Globals.pointer_size-1))
+
                     buf_val.append(b)
-                    if k-1<Globals.pointer_size:
+
+                    if k-1 < Globals.pointer_size:
                         continue
-                    buf_val_hashable = 0
-                    byte_map = 0xFF
-                    #dbg("%08x" % buf_val_norm)
-                    for i in range(0,pointer_size):
-                        part_value = buf_val_norm & (byte_map<<(8*i))
-                        part_value >>= 8*i
-                        part_value <<= 8*(pointer_size-i-1)
-                        buf_val_hashable += part_value
-                        #dbg("%08x" % buf_val_hashable)
+
                     l = len(buf_val)
                     buf_val = buf_val[l-Globals.pointer_size:l]
-                    for r in references:
-                        ref = self.get_ref(r)
-                        if ref.get_fully_scanned():
-                            break
-
+                    for ref in ref_list:
                         search_data = search_data_list[search_data_index]
                         search_data_index += 1
                         if buf_val_hashable in search_data:
-                            for s in search_data:
-                                (i,raw_pointer) = search_data[s]
-                                if raw_pointer != buf_val:
-                                    continue
-                                if r.address - i not in ref.get_guessed_regions():
-                                    ref.get_guessed_regions().add(r.address - i)
-                                    cnt += 1
-                                    break
-                self._pos += len(buf)
+                            lst = [search_data[s][0] for s in search_data if (search_data[s][1] == buf_val) and (ref.get_address() - search_data[s][0] not in ref.get_guessed_regions())]
+                            for i in lst:
+                                ref.get_guessed_regions().add(r.address - i)
+                                cnt += 1
+                                break
+                if len(buf) == 0:
+                    self._pos += 1
+                else:
+                    self._pos += len(buf)
             for r in references:
                 ref = self.get_ref(r)
                 for gr in ref.get_guessed_regions():
                     dbg("appended guessed_region %08x" % (gr))
-                ref = self.get_ref(r)
                 ref.set_fully_scanned(True)
         else:
             dbg("do_scan was false")
@@ -402,6 +389,8 @@ class ReferenceSearcher(QtCore.QThread):
             ref.set_pointers_fully_scanned(False)
 
     def search_all_pointers(self, regions, all_references):
+        if self._progress:
+            self._progress.description_changed.emit('Searching all pointers.')
         for r in regions:
             for ref in all_references:
                 time.sleep(Globals.SLEEP_BETWEEN_REGION_SCAN)

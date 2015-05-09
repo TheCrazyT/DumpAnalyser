@@ -25,9 +25,9 @@ class ActionRefMock:
 class MainWindowMock:
     def __init__(self,size=500000000):
         self.size = size
-        self.file_size = size
-        self.rva_list = []
-        self.pos = 0
+        self._file_size = size
+        self._rva_list = []
+        self._pos = 0
         self.action_References = ActionRefMock()
 
     def read_hex(self, pos):

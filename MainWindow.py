@@ -59,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
             ref = Globals.r_searcher.get_ref(r)
             ref.set_fully_scanned(False)
 
-        Globals.r_searcher.force_scan()
+        Globals.r_searcher.signal_force_scan.emit()
 
     def search(self, pos):
         self.set_pos(pos)
